@@ -1,8 +1,10 @@
+// 페이지 로드 시 리스트를 바로 보여주지 않도록 수정
 window.onload = function() {
-    displaySchedules();
+    // 아무것도 하지 않거나, 빈 상태를 유지합니다.
+    const list = document.getElementById('schedule-list');
+    list.innerHTML = '<p style="text-align:center; color:#888;">"리스트 보기" 버튼을 클릭하면 일정이 나타납니다.</p>';
 };
 
-// 현재 수정 중인 항목의 ID를 저장할 변수
 let editId = null;
 
 function addSchedule() {
@@ -20,52 +22,53 @@ function addSchedule() {
     let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
 
     if (editId) {
-        // [수정 모드] 기존 데이터 찾아서 변경
         savedSchedules = savedSchedules.map(item => {
             if (item.id === editId) {
                 return { ...item, date, location, endTime, teammates, memo };
             }
             return item;
         });
-        editId = null; // 수정 완료 후 초기화
+        editId = null;
         document.querySelector('button[onclick="addSchedule()"]').innerText = "일정 추가하기";
     } else {
-        // [추가 모드] 새 데이터 생성
         const newSchedule = { id: Date.now(), date, location, endTime, teammates, memo };
         savedSchedules.push(newSchedule);
     }
 
     localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
-    displaySchedules();
+    
+    // 추가 후에는 리스트를 자동으로 보여줍니다 (사용자 편의)
+    displaySchedules(true); 
     resetForm();
 }
 
-// 수정 버튼 눌렀을 때 실행되는 함수
 function editSchedule(id) {
     const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
     const target = savedSchedules.find(item => item.id === id);
 
     if (target) {
-        // 1. 입력창에 기존 데이터 채워넣기
         document.getElementById('date').value = target.date;
         document.getElementById('location').value = target.location;
         document.getElementById('end-time').value = target.endTime;
         document.getElementById('teammates').value = target.teammates;
         document.getElementById('memo').value = target.memo;
 
-        // 2. 수정 모드임을 표시
         editId = id;
         document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
-        
-        // 화면 상단 입력창으로 스크롤 이동
         window.scrollTo(0, 0);
     }
 }
 
+// 이 함수가 호출되어야만 리스트가 화면에 그려집니다.
 function displaySchedules(isSorted = false) {
     const list = document.getElementById('schedule-list');
     let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
     
+    if (savedSchedules.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#888;">저장된 일정이 없습니다.</p>';
+        return;
+    }
+
     if (isSorted) {
         savedSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
     }
@@ -92,7 +95,7 @@ function deleteSchedule(id) {
     let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
     savedSchedules = savedSchedules.filter(item => item.id !== id);
     localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
-    displaySchedules();
+    displaySchedules(true); // 삭제 후 리스트 갱신
 }
 
 function resetForm() {
