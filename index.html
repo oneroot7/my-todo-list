@@ -27,9 +27,12 @@
             <button onclick="addSchedule()">일정 추가하기</button>
         </div>
 
-        <hr>
-        <h2>📋 일정 리스트</h2>
-        <ul id="schedule-list"></ul>
+<hr>
+<div class="list-header">
+    <h2>📋 일정 리스트</h2>
+    <button class="view-btn" onclick="displaySchedules(true)">리스트 보기 (날짜순)</button>
+</div>
+<ul id="schedule-list"></ul>
     </div>
     <script src="script.js"></script>
 </body>
