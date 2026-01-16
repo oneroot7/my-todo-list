@@ -1,12 +1,32 @@
-body { font-family: 'Malgun Gothic', sans-serif; background: #f8f9fa; display: flex; justify-content: center; padding: 20px; }
-.todo-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 450px; }
-.input-form { display: flex; flex-direction: column; gap: 10px; }
-.input-form label { font-weight: bold; font-size: 14px; color: #555; }
-input, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-textarea { height: 80px; resize: none; }
-button { padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-button:hover { background: #0056b3; }
-hr { margin: 30px 0; border: 0; border-top: 1px solid #eee; }
-.schedule-item { background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 15px; position: relative; }
-.schedule-item strong { color: #007bff; }
-.delete-btn { position: absolute; top: 10px; right: 10px; background: #ff4d4d; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+function addSchedule() {
+    // 입력값들 가져오기
+    const date = document.getElementById('date').value;
+    const location = document.getElementById('location').value;
+    const endTime = document.getElementById('end-time').value;
+    const teammates = document.getElementById('teammates').value;
+    const memo = document.getElementById('memo').value;
+
+    // 필수 입력 체크 (날짜와 장소는 입력해야 함)
+    if (!date || !location) {
+        alert("날짜와 장소를 입력해주세요!");
+        return;
+    }
+
+    const list = document.getElementById('schedule-list');
+    const li = document.createElement('li');
+    li.className = 'schedule-item';
+
+    // 화면에 표시될 내용 구성
+    li.innerHTML = `
+        <strong>[${date}]</strong><br>
+        📍 장소: ${location} | 🕒 종료: ${endTime}<br>
+        👥 팀원: ${teammates}<br>
+        📝 메모: ${memo}
+        <button class="delete-btn" onclick="this.parentElement.remove()">삭제</button>
+    `;
+
+    list.appendChild(li);
+
+    // 입력창 초기화
+    document.querySelectorAll('input, textarea').forEach(input => input.value = '');
+}
