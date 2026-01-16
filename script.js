@@ -1,6 +1,7 @@
-// 페이지가 처음 열릴 때 저장된 데이터를 불러와서 화면에 보여줍니다.
+// script.js 전체 내용을 아래로 교체하는 것을 추천합니다.
+
 window.onload = function() {
-    displaySchedules();
+    displaySchedules(); // 처음 로딩 시에는 저장된 순서대로 표시
 };
 
 function addSchedule() {
@@ -15,9 +16,8 @@ function addSchedule() {
         return;
     }
 
-    // 1. 입력된 데이터를 하나의 객체(Object)로 만듭니다.
     const newSchedule = {
-        id: Date.now(), // 고유 ID로 사용
+        id: Date.now(),
         date,
         location,
         endTime,
@@ -25,26 +25,24 @@ function addSchedule() {
         memo
     };
 
-    // 2. 기존에 저장된 리스트를 가져와서 새 일정을 추가합니다.
     const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
     savedSchedules.push(newSchedule);
-
-    // 3. 다시 localStorage에 저장합니다.
     localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
 
-    // 4. 화면을 새로고침하여 리스트를 보여줍니다.
     displaySchedules();
-
-    // 5. 입력창 초기화
     document.querySelectorAll('input, textarea').forEach(input => input.value = '');
 }
 
-// 저장된 일정을 리스트 형태로 화면에 그려주는 함수
-function displaySchedules() {
+// displaySchedules 함수에 isSorted 매개변수를 추가합니다.
+function displaySchedules(isSorted = false) {
     const list = document.getElementById('schedule-list');
-    const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
+    let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
     
-    // 기존 리스트를 비우고 다시 그립니다.
+    // "리스트 보기"를 눌러 isSorted가 true로 들어오면 날짜순으로 정렬합니다.
+    if (isSorted) {
+        savedSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
     list.innerHTML = '';
 
     savedSchedules.forEach(item => {
@@ -61,10 +59,8 @@ function displaySchedules() {
     });
 }
 
-// 특정 일정을 삭제하는 함수
 function deleteSchedule(id) {
     let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-    // 해당 ID를 제외한 나머지 일정만 남깁니다.
     savedSchedules = savedSchedules.filter(item => item.id !== id);
     localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
     displaySchedules();
