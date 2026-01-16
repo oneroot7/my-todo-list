@@ -81,7 +81,8 @@ function displaySchedules(isSorted = false) {
         li.className = 'schedule-item';
         li.innerHTML = `
             <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
+            📍 장소: ${item.location} <br>
+            🕒 종료: ${item.endTime}<br>
             👥 팀원: ${item.teammates}<br>
             📝 메모: ${item.memo}
             <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
@@ -138,7 +139,8 @@ function filterSchedules() {
         li.className = 'schedule-item';
         li.innerHTML = `
             <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
+            📍 장소: ${item.location} <br>
+            🕒 종료: ${item.endTime}<br>
             👥 팀원: ${item.teammates}<br>
             📝 메모: ${item.memo}
             <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
