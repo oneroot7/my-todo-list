@@ -1,18 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>심플 일정 관리</title>
+    <title>업무 일정 관리</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="todo-container">
-        <h2>📝 오늘의 할 일</h2>
-        <div class="input-box">
-            <input type="text" id="todo-input" placeholder="할 일을 입력하세요...">
-            <button onclick="addTodo()">추가</button>
+        <h2>📅 일정 등록</h2>
+        <div class="input-form">
+            <label>날짜</label>
+            <input type="date" id="date">
+            
+            <label>장소</label>
+            <input type="text" id="location" placeholder="예: 미팅룸 A">
+            
+            <label>종료 시간</label>
+            <input type="time" id="end-time">
+            
+            <label>팀 동료</label>
+            <input type="text" id="teammates" placeholder="예: 홍길동, 김철수">
+            
+            <label>메모</label>
+            <textarea id="memo" placeholder="상세 내용을 입력하세요"></textarea>
+            
+            <button onclick="addSchedule()">일정 추가하기</button>
         </div>
-        <ul id="todo-list"></ul>
+
+        <hr>
+        <h2>📋 일정 리스트</h2>
+        <ul id="schedule-list"></ul>
     </div>
     <script src="script.js"></script>
 </body>
