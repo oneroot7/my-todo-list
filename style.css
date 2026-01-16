@@ -140,3 +140,36 @@ button[onclick="addSchedule()"] {
 
 .edit-btn { background: #e9ecef; color: #495057; margin-right: 10px; }
 .delete-btn { background: #ffe3e3; color: #ff4d4d; }
+/* 화면 너비가 600px보다 작을 때 (모바일 기기 등) 적용되는 규칙 */
+@media (max-width: 600px) {
+    .todo-container {
+        padding: 20px; /* 여백을 조금 줄여서 화면을 넓게 씀 */
+        border-radius: 0; /* 모바일에서는 꽉 차게 보이도록 굴곡 제거 가능 */
+    }
+
+    .input-form {
+        grid-template-columns: 1fr; /* 2열에서 1열로 변경 */
+        gap: 15px;
+    }
+
+    /* 모든 입력창과 버튼을 한 줄씩 차지하게 만듦 */
+    #date, #location, #end-time, #teammates, #memo, button[onclick="addSchedule()"] {
+        grid-column: span 1;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .list-header {
+        align-items: stretch; /* 검색창과 버튼을 가로로 꽉 채움 */
+    }
+
+    .search-group {
+        flex-direction: column; /* 검색창과 버튼도 세로로 배치 */
+    }
+
+    #search-input {
+        width: auto; /* 너비 자동 조절 */
+    }
+}
