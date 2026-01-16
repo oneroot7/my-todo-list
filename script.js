@@ -69,10 +69,11 @@ function displaySchedules(isSorted = false) {
         return;
     }
 
+// [중요] 이 부분이 역순(최신순) 정렬 로직입니다.
     if (isSorted) {
-        savedSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
+        savedSchedules.sort((a, b) => new Date(b.date) - new Date(a.date)); 
+        // a - b 대신 b - a를 사용하면 역순이 됩니다.
     }
-
     list.innerHTML = '';
 
     savedSchedules.forEach(item => {
