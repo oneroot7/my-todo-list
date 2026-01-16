@@ -102,3 +102,48 @@ function deleteSchedule(id) {
 function resetForm() {
     document.querySelectorAll('input, textarea').forEach(input => input.value = '');
 }
+// script.js 맨 아래에 이 함수를 추가해 주세요.
+
+function filterSchedules() {
+    const keyword = document.getElementById('search-input').value.toLowerCase();
+    const list = document.getElementById('schedule-list');
+    const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
+    
+    // 만약 리스트가 비어있다면 필터링을 하지 않습니다.
+    if (list.innerHTML.includes('"리스트 보기" 버튼을 클릭')) {
+        return; 
+    }
+
+    // 키워드가 포함된 일정만 걸러냅니다 (장소, 팀원, 메모에서 검색)
+    const filtered = savedSchedules.filter(item => {
+        return item.location.toLowerCase().includes(keyword) || 
+               item.teammates.toLowerCase().includes(keyword) || 
+               item.memo.toLowerCase().includes(keyword) ||
+               item.date.includes(keyword);
+    });
+
+    // 화면 초기화 후 필터링된 결과만 출력
+    list.innerHTML = '';
+    
+    if (filtered.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#888;">검색 결과가 없습니다.</p>';
+        return;
+    }
+
+    // 필터링된 결과는 기본적으로 최신순 정렬해서 보여줍니다.
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    filtered.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'schedule-item';
+        li.innerHTML = `
+            <strong>[${item.date}]</strong><br>
+            📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
+            👥 팀원: ${item.teammates}<br>
+            📝 메모: ${item.memo}
+            <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
+            <button class="delete-btn" onclick="deleteSchedule(${item.id})">삭제</button>
+        `;
+        list.appendChild(li);
+    });
+}
