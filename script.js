@@ -109,21 +109,24 @@ function filterSchedules() {
     const keyword = document.getElementById('search-input').value.toLowerCase();
     const list = document.getElementById('schedule-list');
     const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-    
-    // 만약 리스트가 비어있다면 필터링을 하지 않습니다.
-    if (list.innerHTML.includes('"리스트 보기" 버튼을 클릭')) {
-        return; 
+
+    // 1. 검색어가 없으면 리스트를 비우거나 초기 안내 문구 출력 (원하는 대로 설정 가능)
+    if (keyword === '') {
+        list.innerHTML = '<p style="text-align:center; color:#888;">검색어를 입력하거나 "전체 리스트 보기"를 눌러주세요.</p>';
+        return;
     }
 
-    // 키워드가 포함된 일정만 걸러냅니다 (장소, 팀원, 메모에서 검색)
+    // 2. 검색어가 포함된 일정 필터링
     const filtered = savedSchedules.filter(item => {
-        return item.location.toLowerCase().includes(keyword) || 
-               item.teammates.toLowerCase().includes(keyword) || 
-               item.memo.toLowerCase().includes(keyword) ||
-               item.date.includes(keyword);
+        return (
+            item.location.toLowerCase().includes(keyword) || 
+            item.teammates.toLowerCase().includes(keyword) || 
+            item.memo.toLowerCase().includes(keyword) ||
+            item.date.includes(keyword)
+        );
     });
 
-    // 화면 초기화 후 필터링된 결과만 출력
+    // 3. 필터링된 결과 화면에 그리기
     list.innerHTML = '';
     
     if (filtered.length === 0) {
@@ -131,7 +134,7 @@ function filterSchedules() {
         return;
     }
 
-    // 필터링된 결과는 기본적으로 최신순 정렬해서 보여줍니다.
+    // 최신순 정렬
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     filtered.forEach(item => {
@@ -139,8 +142,7 @@ function filterSchedules() {
         li.className = 'schedule-item';
         li.innerHTML = `
             <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location} <br>
-            🕒 종료: ${item.endTime}<br>
+            📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
             👥 팀원: ${item.teammates}<br>
             📝 메모: ${item.memo}
             <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
