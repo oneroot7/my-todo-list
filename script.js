@@ -1,3 +1,15 @@
+// script.js 상단에 로그인/로그아웃 함수 추가
+async function login() {
+    try {
+        await window.signInWithPopup(window.auth, window.provider);
+    } catch (error) {
+        console.error("로그인 실패:", error);
+    }
+}
+
+async function logout() {
+    await window.signOut(window.auth);
+}
 // 페이지 로드 시 리스트를 바로 보여주지 않도록 수정
 window.onload = function() {
     // 아무것도 하지 않거나, 빈 상태를 유지합니다.
@@ -12,6 +24,9 @@ let editId = null;
 
 // 1. 일정 추가 및 수정 (Create & Update)
 async function addSchedule() {
+    const user = window.auth.currentUser; // 현재 로그인된 유저 확인
+    if (!user) return alert("로그인이 필요합니다.");
+    
     const date = document.getElementById('date').value;
     const location = document.getElementById('location').value;
     const endTime = document.getElementById('end-time').value;
@@ -23,33 +38,38 @@ async function addSchedule() {
         return;
     }
 
-    try {
+try {
         const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const scheduleData = {
+            date, location, endTime, teammates, memo,
+            userId: user.uid, // ⭐️ 유저 고유 ID 저장
+            timestamp: Date.now()
+        };
 
         if (editId) {
-            // [수정 모드] LocalStorage 대신 Firestore 문서 업데이트
-            const docRef = doc(window.db, "schedules", editId);
-            await updateDoc(docRef, { date, location, endTime, teammates, memo });
+            await updateDoc(doc(window.db, "schedules", editId), scheduleData);
             editId = null;
-            document.querySelector('button[onclick="addSchedule()"]').innerText = "일정 추가하기";
         } else {
-            // [추가 모드] Firestore 'schedules' 컬렉션에 새 문서 저장
-            await addDoc(collection(window.db, "schedules"), {
-                date, location, endTime, teammates, memo,
-                timestamp: Date.now() // 생성 순서 기록용
-            });
+            await addDoc(collection(window.db, "schedules"), scheduleData);
         }
-
         resetForm();
-        displaySchedules(true); // 저장 후 리스트 갱신
-    } catch (e) {
-        console.error("데이터 저장 에러: ", e);
-        alert("저장에 실패했습니다.");
-    }
+        displaySchedules(true);
+    } catch (e) { console.error(e); }
 }
 
 // 2. 리스트 불러오기 (Read) - LocalStorage 가져오기 대신 사용됨
 async function displaySchedules(isSorted = false) {
+    const user = window.auth.currentUser;
+    if (!user) return;
+
+    const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    
+    // ⭐️ userId가 현재 로그인한 유저와 같은 것만 가져오기
+    const q = query(
+        collection(window.db, "schedules"), 
+        where("userId", "==", user.uid), 
+        orderBy("date", "desc")
+    );    
     const list = document.getElementById('schedule-list');
     list.innerHTML = '<p style="text-align:center;">데이터를 불러오는 중...</p>';
 
