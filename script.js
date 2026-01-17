@@ -114,18 +114,38 @@ async function deleteSchedule(id) {
 }
 
 // 5. 수정 데이터 세팅
+// 수정 기능 보강 (서버에서 데이터를 가져와 입력창에 채우기)
 async function editSchedule(id) {
-    // Firebase에서 특정 문서 하나를 찾을 수도 있지만, 
-    // 이미 화면에 그려진 리스트 정보를 이용하는 게 빠릅니다.
-    // (이 예시에서는 편의를 위해 입력창 세팅만 처리)
-    const listItems = document.querySelectorAll('.schedule-item');
-    // 실제로는 데이터를 다시 fetch하거나, 로컬 변수에 저장된 값을 쓰는 게 좋습니다.
-    // 여기서는 로직만 유지하고, 위 displaySchedules에서 가져온 id를 매칭합니다.
-    
-    // 수정 시에는 다시 '추가' 버튼이 '수정 완료'로 바뀌어야 합니다.
-    editId = id;
-    document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
-    window.scrollTo(0, 0);
+    try {
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        
+        // 1. Firestore에서 해당 ID의 문서 하나만 가져옵니다.
+        const docRef = doc(window.db, "schedules", id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const target = docSnap.data();
+
+            // 2. 각 입력창(input, textarea)에 서버에서 가져온 값을 채워넣습니다.
+            document.getElementById('date').value = target.date || "";
+            document.getElementById('location').value = target.location || "";
+            document.getElementById('end-time').value = target.endTime || "18:00"; // 기본값 설정
+            document.getElementById('teammates').value = target.teammates || "";
+            document.getElementById('memo').value = target.memo || "";
+
+            // 3. 현재 수정 중인 문서의 ID를 전역 변수에 저장하고 버튼 텍스트를 변경합니다.
+            editId = id;
+            document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
+
+            // 4. 입력 화면이 있는 맨 위로 스크롤을 이동시킵니다.
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            alert("해당 일정을 찾을 수 없습니다.");
+        }
+    } catch (e) {
+        console.error("수정 데이터 로딩 에러: ", e);
+        alert("데이터를 불러오는 데 실패했습니다.");
+    }
 }
 
 // script.js 내 resetForm 함수 수정
