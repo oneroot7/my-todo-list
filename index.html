@@ -37,6 +37,30 @@
 </div>
 </div>
 <ul id="schedule-list"></ul>    </div>
-    <script src="script.js"></script>
+<script type="module">
+  // Firebase SDK들
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // 1단계에서 복사한 본인의 설정값을 여기에 넣으세요
+  const firebaseConfig = {
+  apiKey: "AIzaSyBwPFxAaMFEK07WGeeVUzHb-PfBGeI4gDM",
+  authDomain: "my-todo-list-3503a.firebaseapp.com",
+  projectId: "my-todo-list-3503a",
+  storageBucket: "my-todo-list-3503a.firebasestorage.app",
+  messagingSenderId: "215467735362",
+  appId: "1:215467735362:web:c6a3091978e3633668f0db",
+  measurementId: "G-V7YRZG9FJ6"
+};
+
+  // 초기화
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 전역 변수로 설정하여 script.js에서 쓸 수 있게 합니다
+  window.db = db;
+</script>
+<script src="script.js"></script>    
 </body>
 </html>
