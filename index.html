@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="login-section" style="text-align: center; margin-top: 100px;">
+<div id="login-section" style="text-align: center; margin-top: 100px;">
         <h2>📅 업무 일정 관리</h2>
         <button onclick="login()" style="padding: 15px 30px; font-size: 1.1rem; cursor: pointer; border-radius: 12px; border: none; background: #4285F4; color: white; font-weight: bold;">
             Google 계정으로 로그인
@@ -52,7 +52,61 @@
               document.getElementById('main-content').style.display = 'none';
           }
       });
-    </script>
-    <script src="script.js"></script>
+    </script>    
+    <div class="todo-container">
+        <h2>📅 일정 등록</h2>
+        <div class="input-form">
+            <label>날짜</label>
+            <input type="date" id="date">
+            
+            <label>장소</label>
+            <input type="text" id="location" placeholder="예: 미팅룸 A">
+            
+            <label>종료 시간</label>
+            <input type="time" id="end-time" value="18:00">
+            
+            <label>팀 동료</label>
+            <input type="text" id="teammates" placeholder="예: 홍길동, 김철수">
+            
+            <label>메모</label>
+            <textarea id="memo" placeholder="상세 내용을 입력하세요"></textarea>
+            
+            <button onclick="addSchedule()">일정 추가하기</button>
+        </div>
+
+<hr>
+<div class="list-header">
+    <h2>📋 일정 리스트</h2>
+<div class="search-group">
+    <input type="text" id="search-input" placeholder="검색어 입력..." oninput="filterSchedules()">
+    <button class="view-btn" onclick="displaySchedules(true)">전체 리스트 보기</button>
+</div>
+</div>
+<ul id="schedule-list"></ul>    </div>
+<script type="module">
+  // Firebase SDK들
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // 1단계에서 복사한 본인의 설정값을 여기에 넣으세요
+  const firebaseConfig = {
+  apiKey: "AIzaSyBwPFxAaMFEK07WGeeVUzHb-PfBGeI4gDM",
+  authDomain: "my-todo-list-3503a.firebaseapp.com",
+  projectId: "my-todo-list-3503a",
+  storageBucket: "my-todo-list-3503a.firebasestorage.app",
+  messagingSenderId: "215467735362",
+  appId: "1:215467735362:web:c6a3091978e3633668f0db",
+  measurementId: "G-V7YRZG9FJ6"
+};
+
+  // 초기화
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 전역 변수로 설정하여 script.js에서 쓸 수 있게 합니다
+  window.db = db;
+</script>
+<script src="script.js"></script>    
 </body>
 </html>
