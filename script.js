@@ -128,8 +128,15 @@ async function editSchedule(id) {
     window.scrollTo(0, 0);
 }
 
+// script.js 내 resetForm 함수 수정
 function resetForm() {
-    document.querySelectorAll('input, textarea').forEach(input => input.value = '');
+    document.querySelectorAll('input, textarea').forEach(input => {
+        if (input.id === 'end-time') {
+            input.value = '18:00'; // 시간은 오후 6시로 초기화
+        } else {
+            input.value = ''; // 나머지는 비움
+        }
+    });
 }
 
 window.onload = function() {
