@@ -60,29 +60,24 @@ try {
 // 2. 리스트 불러오기 (Read) - LocalStorage 가져오기 대신 사용됨
 async function displaySchedules(isSorted = false) {
     const user = window.auth.currentUser;
-    if (!user) return;
+    if (!user) return; // 로그인 안 되어 있으면 중단
 
-    const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-    
-    // ⭐️ userId가 현재 로그인한 유저와 같은 것만 가져오기
-    const q = query(
-        collection(window.db, "schedules"), 
-        where("userId", "==", user.uid), 
-        orderBy("date", "desc")
-    );    
     const list = document.getElementById('schedule-list');
-    list.innerHTML = '<p style="text-align:center;">데이터를 불러오는 중...</p>';
+    list.innerHTML = '로딩 중...';
 
     try {
-        const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
         
-        // Firestore에서 데이터를 가져오는 쿼리 (날짜 역순 정렬 포함)
-        const q = query(collection(window.db, "schedules"), orderBy("date", "desc"));
+        // ⭐️ 핵심: userId가 현재 로그인한 사용자의 UID와 일치하는 것만 가져옵니다.
+        const q = query(
+            collection(window.db, "schedules"), 
+            where("userId", "==", user.uid), 
+            orderBy("date", "desc")
+        );
+        
         const querySnapshot = await getDocs(q);
-        
         const schedules = [];
         querySnapshot.forEach((doc) => {
-            // doc.id는 Firebase가 자동으로 만든 고유 번호입니다.
             schedules.push({ id: doc.id, ...doc.data() });
         });
 
@@ -94,7 +89,7 @@ async function displaySchedules(isSorted = false) {
         renderList(schedules);
     } catch (e) {
         console.error("데이터 로딩 에러: ", e);
-        list.innerHTML = '<p style="text-align:center; color:red;">데이터를 불러오지 못했습니다.</p>';
+        // 만약 '색인(Index) 필요' 에러가 나면 콘솔창의 링크를 눌러 색인을 생성해야 합니다.
     }
 }
 
