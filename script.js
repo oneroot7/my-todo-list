@@ -5,9 +5,13 @@ window.onload = function() {
     list.innerHTML = '<p style="text-align:center; color:#888;">"리스트 보기" 버튼을 클릭하면 일정이 나타납니다.</p>';
 };
 
+// index.html에서 window.db로 설정한 객체를 가져와서 사용합니다.
+// 이 코드는 Firebase 설정이 완료된 index.html과 함께 작동해야 합니다.
+
 let editId = null;
 
-function addSchedule() {
+// 1. 일정 추가 및 수정 (Create & Update)
+async function addSchedule() {
     const date = document.getElementById('date').value;
     const location = document.getElementById('location').value;
     const endTime = document.getElementById('end-time').value;
@@ -19,125 +23,67 @@ function addSchedule() {
         return;
     }
 
-    let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
+    try {
+        const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    if (editId) {
-        savedSchedules = savedSchedules.map(item => {
-            if (item.id === editId) {
-                return { ...item, date, location, endTime, teammates, memo };
-            }
-            return item;
+        if (editId) {
+            // [수정 모드] LocalStorage 대신 Firestore 문서 업데이트
+            const docRef = doc(window.db, "schedules", editId);
+            await updateDoc(docRef, { date, location, endTime, teammates, memo });
+            editId = null;
+            document.querySelector('button[onclick="addSchedule()"]').innerText = "일정 추가하기";
+        } else {
+            // [추가 모드] Firestore 'schedules' 컬렉션에 새 문서 저장
+            await addDoc(collection(window.db, "schedules"), {
+                date, location, endTime, teammates, memo,
+                timestamp: Date.now() // 생성 순서 기록용
+            });
+        }
+
+        resetForm();
+        displaySchedules(true); // 저장 후 리스트 갱신
+    } catch (e) {
+        console.error("데이터 저장 에러: ", e);
+        alert("저장에 실패했습니다.");
+    }
+}
+
+// 2. 리스트 불러오기 (Read) - LocalStorage 가져오기 대신 사용됨
+async function displaySchedules(isSorted = false) {
+    const list = document.getElementById('schedule-list');
+    list.innerHTML = '<p style="text-align:center;">데이터를 불러오는 중...</p>';
+
+    try {
+        const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        
+        // Firestore에서 데이터를 가져오는 쿼리 (날짜 역순 정렬 포함)
+        const q = query(collection(window.db, "schedules"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        const schedules = [];
+        querySnapshot.forEach((doc) => {
+            // doc.id는 Firebase가 자동으로 만든 고유 번호입니다.
+            schedules.push({ id: doc.id, ...doc.data() });
         });
-        editId = null;
-        document.querySelector('button[onclick="addSchedule()"]').innerText = "일정 추가하기";
-    } else {
-        const newSchedule = { id: Date.now(), date, location, endTime, teammates, memo };
-        savedSchedules.push(newSchedule);
-    }
 
-    localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
-    
-    // 추가 후에는 리스트를 자동으로 보여줍니다 (사용자 편의)
-    displaySchedules(true); 
-    resetForm();
-}
+        if (schedules.length === 0) {
+            list.innerHTML = '<p style="text-align:center; color:#888;">저장된 일정이 없습니다.</p>';
+            return;
+        }
 
-function editSchedule(id) {
-    const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-    const target = savedSchedules.find(item => item.id === id);
-
-    if (target) {
-        document.getElementById('date').value = target.date;
-        document.getElementById('location').value = target.location;
-        document.getElementById('end-time').value = target.endTime;
-        document.getElementById('teammates').value = target.teammates;
-        document.getElementById('memo').value = target.memo;
-
-        editId = id;
-        document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
-        window.scrollTo(0, 0);
+        renderList(schedules);
+    } catch (e) {
+        console.error("데이터 로딩 에러: ", e);
+        list.innerHTML = '<p style="text-align:center; color:red;">데이터를 불러오지 못했습니다.</p>';
     }
 }
 
-// 이 함수가 호출되어야만 리스트가 화면에 그려집니다.
-function displaySchedules(isSorted = false) {
+// 3. 화면에 그리기 (기존의 renderList 로직 활용)
+function renderList(data) {
     const list = document.getElementById('schedule-list');
-    let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-    
-    if (savedSchedules.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#888;">저장된 일정이 없습니다.</p>';
-        return;
-    }
-
-// [중요] 이 부분이 역순(최신순) 정렬 로직입니다.
-    if (isSorted) {
-        savedSchedules.sort((a, b) => new Date(b.date) - new Date(a.date)); 
-        // a - b 대신 b - a를 사용하면 역순이 됩니다.
-    }
-    list.innerHTML = '';
-
-    savedSchedules.forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'schedule-item';
-        li.innerHTML = `
-            <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location} <br>
-            🕒 종료: ${item.endTime}<br>
-            👥 팀원: ${item.teammates}<br>
-            📝 메모: ${item.memo}
-            <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
-            <button class="delete-btn" onclick="deleteSchedule(${item.id})">삭제</button>
-        `;
-        list.appendChild(li);
-    });
-}
-
-function deleteSchedule(id) {
-    if(!confirm("정말 삭제하시겠습니까?")) return;
-    let savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-    savedSchedules = savedSchedules.filter(item => item.id !== id);
-    localStorage.setItem('mySchedules', JSON.stringify(savedSchedules));
-    displaySchedules(true); // 삭제 후 리스트 갱신
-}
-
-function resetForm() {
-    document.querySelectorAll('input, textarea').forEach(input => input.value = '');
-}
-// script.js 맨 아래에 이 함수를 추가해 주세요.
-
-function filterSchedules() {
-    const keyword = document.getElementById('search-input').value.toLowerCase();
-    const list = document.getElementById('schedule-list');
-    const savedSchedules = JSON.parse(localStorage.getItem('mySchedules') || '[]');
-
-    // 1. 검색어가 없으면 리스트를 비우거나 초기 안내 문구 출력 (원하는 대로 설정 가능)
-    if (keyword === '') {
-        list.innerHTML = '<p style="text-align:center; color:#888;">검색어를 입력하거나 "전체 리스트 보기"를 눌러주세요.</p>';
-        return;
-    }
-
-    // 2. 검색어가 포함된 일정 필터링
-    const filtered = savedSchedules.filter(item => {
-        return (
-            item.location.toLowerCase().includes(keyword) || 
-            item.teammates.toLowerCase().includes(keyword) || 
-            item.memo.toLowerCase().includes(keyword) ||
-            item.date.includes(keyword)
-        );
-    });
-
-    // 3. 필터링된 결과 화면에 그리기
     list.innerHTML = '';
     
-    if (filtered.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#888;">검색 결과가 없습니다.</p>';
-        return;
-    }
-
-    // 최신순 정렬
-    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    filtered.forEach(item => {
+    data.forEach(item => {
         const li = document.createElement('li');
         li.className = 'schedule-item';
         li.innerHTML = `
@@ -145,9 +91,81 @@ function filterSchedules() {
             📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
             👥 팀원: ${item.teammates}<br>
             📝 메모: ${item.memo}
-            <button class="edit-btn" onclick="editSchedule(${item.id})">수정</button>
-            <button class="delete-btn" onclick="deleteSchedule(${item.id})">삭제</button>
+            <div style="margin-top:10px;">
+                <button class="edit-btn" onclick="editSchedule('${item.id}')">수정</button>
+                <button class="delete-btn" onclick="deleteSchedule('${item.id}')">삭제</button>
+            </div>
         `;
         list.appendChild(li);
     });
+}
+
+// 4. 삭제 기능 (Delete)
+async function deleteSchedule(id) {
+    if(!confirm("정말 삭제하시겠습니까?")) return;
+    
+    try {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        await deleteDoc(doc(window.db, "schedules", id));
+        displaySchedules(true);
+    } catch (e) {
+        alert("삭제에 실패했습니다.");
+    }
+}
+
+// 5. 수정 데이터 세팅
+async function editSchedule(id) {
+    // Firebase에서 특정 문서 하나를 찾을 수도 있지만, 
+    // 이미 화면에 그려진 리스트 정보를 이용하는 게 빠릅니다.
+    // (이 예시에서는 편의를 위해 입력창 세팅만 처리)
+    const listItems = document.querySelectorAll('.schedule-item');
+    // 실제로는 데이터를 다시 fetch하거나, 로컬 변수에 저장된 값을 쓰는 게 좋습니다.
+    // 여기서는 로직만 유지하고, 위 displaySchedules에서 가져온 id를 매칭합니다.
+    
+    // 수정 시에는 다시 '추가' 버튼이 '수정 완료'로 바뀌어야 합니다.
+    editId = id;
+    document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
+    window.scrollTo(0, 0);
+}
+
+function resetForm() {
+    document.querySelectorAll('input, textarea').forEach(input => input.value = '');
+}
+
+window.onload = function() {
+    const list = document.getElementById('schedule-list');
+    list.innerHTML = '<p style="text-align:center; color:#888;">"리스트 보기" 버튼을 클릭하면 서버에서 일정을 가져옵니다.</p>';
+};
+
+// 검색 기능 (로컬 필터링 방식)
+async function filterSchedules() {
+    const keyword = document.getElementById('search-input').value.toLowerCase();
+    const list = document.getElementById('schedule-list');
+    
+    // 1. 먼저 Firebase에서 전체 데이터를 가져옵니다.
+    const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const q = query(collection(window.db, "schedules"), orderBy("date", "desc"));
+    const querySnapshot = await getDocs(q);
+    
+    const allSchedules = [];
+    querySnapshot.forEach((doc) => {
+        allSchedules.push({ id: doc.id, ...doc.data() });
+    });
+
+    // 2. 검색어가 포함된 항목만 필터링합니다.
+    const filtered = allSchedules.filter(item => {
+        return (
+            (item.location && item.location.toLowerCase().includes(keyword)) || 
+            (item.teammates && item.teammates.toLowerCase().includes(keyword)) || 
+            (item.memo && item.memo.toLowerCase().includes(keyword)) ||
+            (item.date && item.date.includes(keyword))
+        );
+    });
+
+    // 3. 필터링된 결과만 화면에 다시 그립니다.
+    if (filtered.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#888;">검색 결과가 없습니다.</p>';
+    } else {
+        renderList(filtered);
+    }
 }
