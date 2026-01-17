@@ -88,7 +88,8 @@ function renderList(data) {
         li.className = 'schedule-item';
         li.innerHTML = `
             <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location} | 🕒 종료: ${item.endTime}<br>
+            📍 장소: ${item.location}<br> 
+            🕒 종료: ${item.endTime}<br>
             👥 팀원: ${item.teammates}<br>
             📝 메모: ${item.memo}
             <div style="margin-top:10px;">
