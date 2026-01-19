@@ -32,20 +32,30 @@ function renderCalendar() {
         const dateDiv = document.createElement('div');
         dateDiv.className = 'calendar-day';
         
-        // 날짜 숫자
+        // 1. 날짜 숫자
         const dateNum = document.createElement('span');
+        dateNum.className = 'date-number';
         dateNum.innerText = i;
         dateDiv.appendChild(dateNum);
-
+    
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         
-        // ⭐️ 해당 날짜에 일정이 있는지 확인하고 장소 표시
+        // 2. 해당 날짜 일정 찾기
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         dayEvents.forEach(event => {
+            // 장소 표시 (기존)
             const locBadge = document.createElement('div');
             locBadge.className = 'calendar-event-badge';
-            locBadge.innerText = event.location; // 장소 표시
+            locBadge.innerText = event.location;
             dateDiv.appendChild(locBadge);
+    
+            // ⭐️ 종료 시간 표시 (추가)
+            if (event.endTime) {
+                const timeBadge = document.createElement('div');
+                timeBadge.className = 'calendar-time-badge';
+                timeBadge.innerText = `~${event.endTime}`; // '~18:00' 형태로 표시
+                dateDiv.appendChild(timeBadge);
+            }
         });
 
         dateDiv.onclick = () => selectDate(dateStr);
