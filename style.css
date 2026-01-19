@@ -250,7 +250,7 @@ button[onclick="addSchedule()"] {
 
 /* ⭐️ 종료 시간 스타일 추가 */
 .calendar-time-badge {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: #777; /* 장소보다 연한 회색 */
     margin-top: 1px;
     margin-bottom: 4px;
