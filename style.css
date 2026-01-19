@@ -220,23 +220,30 @@ button[onclick="addSchedule()"] {
 }
 /* style.css 에 추가 */
 .calendar-day {
-    min-height: 60px; /* 장소가 들어갈 수 있게 높이 확보 */
+    min-height: 80px;      /* 2줄 표시를 위해 날짜 칸 높이를 조금 더 키움 */
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 1px solid #f9f9f9;
+    border: 1px solid #f0f0f0;
+    padding-top: 5px;
 }
 
 .calendar-event-badge {
     background-color: #e3f2fd;
     color: #1976d2;
-    font-size: 0.7rem;
+    font-size: 0.65rem; /* 글자 크기를 살짝 줄여 공간 확보 */
     padding: 2px 4px;
     border-radius: 4px;
     margin-top: 2px;
-    width: 90%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* 글자가 길면 ... 처리 */
+    width: 92%;
     text-align: center;
+    
+    /* ⭐️ 2줄까지만 보여주고 넘치면 ... 처리하는 설정 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* 보여줄 줄 수 */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all; /* 영문/숫자 길어도 줄바꿈 강제 */
+    line-height: 1.2;      /* 줄 간격 조절 */
+    max-height: 2.4em;     /* (line-height * 2) 값으로 높이 제한 */
 }
