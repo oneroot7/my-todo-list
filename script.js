@@ -1,6 +1,9 @@
 // script.js 상단에 추가
 let currentViewDate = new Date();
 
+// 전역 변수로 데이터를 담아둘 변수 하나 추가 (달력 표시용)
+let allSchedules = [];
+
 // [1] 달력 그리기 함수
 function renderCalendar() {
     const grid = document.getElementById('calendar-grid');
@@ -9,10 +12,9 @@ function renderCalendar() {
 
     const year = currentViewDate.getFullYear();
     const month = currentViewDate.getMonth();
-
     title.innerText = `${year}년 ${month + 1}월`;
 
-    // 요일 표시
+    // 요일 헤더 (동일)
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     days.forEach(day => {
         const div = document.createElement('div');
@@ -24,22 +26,30 @@ function renderCalendar() {
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    // 시작일 앞 빈칸
-    for (let i = 0; i < firstDay; i++) {
-        grid.appendChild(document.createElement('div'));
-    }
+    for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
 
-    // 날짜 채우기
     for (let i = 1; i <= lastDate; i++) {
         const dateDiv = document.createElement('div');
         dateDiv.className = 'calendar-day';
-        dateDiv.innerText = i;
+        
+        // 날짜 숫자
+        const dateNum = document.createElement('span');
+        dateNum.innerText = i;
+        dateDiv.appendChild(dateNum);
 
-        // 날짜 클릭 이벤트
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        dateDiv.onclick = () => selectDate(dateStr);
+        
+        // ⭐️ 해당 날짜에 일정이 있는지 확인하고 장소 표시
+        const dayEvents = allSchedules.filter(s => s.date === dateStr);
+        dayEvents.forEach(event => {
+            const locBadge = document.createElement('div');
+            locBadge.className = 'calendar-event-badge';
+            locBadge.innerText = event.location; // 장소 표시
+            dateDiv.appendChild(locBadge);
+        });
 
-        // 오늘 날짜 표시
+        dateDiv.onclick = () => selectDate(dateStr);
+        
         const today = new Date();
         if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             dateDiv.classList.add('today');
@@ -121,39 +131,25 @@ try {
     } catch (e) { console.error(e); }
 }
 
-// 2. 리스트 불러오기 (Read) - LocalStorage 가져오기 대신 사용됨
+// [1] 데이터를 먼저 가져오고 달력을 그리도록 displaySchedules 수정
 async function displaySchedules(isSorted = false) {
     const user = window.auth.currentUser;
-    if (!user) return; // 로그인 안 되어 있으면 중단
-
-    const list = document.getElementById('schedule-list');
-    list.innerHTML = '로딩 중...';
+    if (!user) return;
 
     try {
         const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        
-        // ⭐️ 핵심: userId가 현재 로그인한 사용자의 UID와 일치하는 것만 가져옵니다.
-        const q = query(
-            collection(window.db, "schedules"), 
-            where("userId", "==", user.uid), 
-            orderBy("date", "desc")
-        );
-        
+        const q = query(collection(window.db, "schedules"), where("userId", "==", user.uid), orderBy("date", "desc"));
         const querySnapshot = await getDocs(q);
-        const schedules = [];
+        
+        allSchedules = []; // 전역 변수 초기화
         querySnapshot.forEach((doc) => {
-            schedules.push({ id: doc.id, ...doc.data() });
+            allSchedules.push({ id: doc.id, ...doc.data() });
         });
 
-        if (schedules.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#888;">저장된 일정이 없습니다.</p>';
-            return;
-        }
-
-        renderList(schedules);
+        renderList(allSchedules); // 리스트 그리기
+        renderCalendar();         // ⭐️ 데이터 로드 후 달력 다시 그리기
     } catch (e) {
-        console.error("데이터 로딩 에러: ", e);
-        // 만약 '색인(Index) 필요' 에러가 나면 콘솔창의 링크를 눌러 색인을 생성해야 합니다.
+        console.error("로딩 에러:", e);
     }
 }
 
