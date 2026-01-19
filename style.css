@@ -245,5 +245,5 @@ button[onclick="addSchedule()"] {
     overflow: hidden;
     word-break: break-all; /* 영문/숫자 길어도 줄바꿈 강제 */
     line-height: 1.2;      /* 줄 간격 조절 */
-    max-height: 2.4em;     /* (line-height * 2) 값으로 높이 제한 */
+    max-height: 3.6em;     /* (line-height * 3) 값으로 높이 제한 */
 }
