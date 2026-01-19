@@ -61,23 +61,22 @@ function renderCalendar() {
 
 // [2] 날짜 선택 시 로직 수정 (입력 or 수정 전환)
 function selectDate(dateStr) {
-    // 1. 해당 날짜에 저장된 일정이 있는지 찾습니다.
+function selectDate(dateStr) {
+    // 1. 해당 날짜의 일정이 있는지 확인
     const existingEvent = allSchedules.find(s => s.date === dateStr);
 
     if (existingEvent) {
-        // 2. 일정이 있다면 수정 모드로 진입 (기존 editSchedule 함수 호출)
+        // 이미 일정이 있으면 수정 모드
         editSchedule(existingEvent.id);
-        console.log(`${dateStr}의 일정을 수정합니다.`);
     } else {
-        // 3. 일정이 없다면 새 입력 모드
-        resetForm(); // 기존 입력값 비우기
-        document.getElementById('date').value = dateStr;
+        // 일정이 없으면 새로 입력 모드
+        resetForm(); 
+        document.getElementById('date').value = dateStr; // 달력에서 클릭한 날짜가 자동으로 들어감
         editId = null;
         document.getElementById('submit-btn').innerText = "일정 추가하기";
-        console.log(`${dateStr}에 새로운 일정을 등록합니다.`);
     }
 
-    // 4. 입력 폼으로 부드럽게 이동
+    // 2. 입력 폼으로 이동
     document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -239,18 +238,20 @@ async function editSchedule(id) {
     }
 }
 
-// script.js 내 resetForm 함수 수정
+// 폼 초기화 함수 수정 (작성자와 날짜 처리)
 function resetForm() {
-    document.querySelectorAll('input, textarea').forEach(input => {
-if (input.id === 'end-time') {
-            input.value = '18:00';
-        } else if (input.id === 'teammates') {
-            // ⭐️ 초기화 시에도 작성자 이름은 유지
-            input.value = user ? user.displayName : '';
-        } else {
-            input.value = '';
-        }
-    });
+    const user = window.auth.currentUser;
+    document.getElementById('location').value = '';
+    document.getElementById('end-time').value = '18:00';
+    document.getElementById('memo').value = '';
+    
+    // 날짜는 사용자가 달력에서 다시 고를 때까지 비워둡니다.
+    document.getElementById('date').value = '';
+    
+    // 작성자 이름은 유지
+    if (user) {
+        document.getElementById('teammates').value = user.displayName;
+    }
 }
 
 window.onload = function() {
