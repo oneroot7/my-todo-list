@@ -61,7 +61,6 @@ function renderCalendar() {
 
 // [2] 날짜 선택 시 로직 수정 (입력 or 수정 전환)
 function selectDate(dateStr) {
-function selectDate(dateStr) {
     // 1. 해당 날짜의 일정이 있는지 확인
     const existingEvent = allSchedules.find(s => s.date === dateStr);
 
