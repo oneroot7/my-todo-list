@@ -240,7 +240,7 @@ button[onclick="addSchedule()"] {
     
     /* ⭐️ 2줄까지만 보여주고 넘치면 ... 처리하는 설정 */
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* 보여줄 줄 수 */
+    -webkit-line-clamp: 3; /* 보여줄 줄 수 */
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-all; /* 영문/숫자 길어도 줄바꿈 강제 */
