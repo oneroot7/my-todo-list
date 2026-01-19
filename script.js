@@ -1,3 +1,67 @@
+// script.js 상단에 추가
+let currentViewDate = new Date();
+
+// [1] 달력 그리기 함수
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const title = document.getElementById('calendar-title');
+    grid.innerHTML = '';
+
+    const year = currentViewDate.getFullYear();
+    const month = currentViewDate.getMonth();
+
+    title.innerText = `${year}년 ${month + 1}월`;
+
+    // 요일 표시
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    days.forEach(day => {
+        const div = document.createElement('div');
+        div.className = 'day-label';
+        div.innerText = day;
+        grid.appendChild(div);
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    // 시작일 앞 빈칸
+    for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    // 날짜 채우기
+    for (let i = 1; i <= lastDate; i++) {
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'calendar-day';
+        dateDiv.innerText = i;
+
+        // 날짜 클릭 이벤트
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        dateDiv.onclick = () => selectDate(dateStr);
+
+        // 오늘 날짜 표시
+        const today = new Date();
+        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            dateDiv.classList.add('today');
+        }
+
+        grid.appendChild(dateDiv);
+    }
+}
+
+// [2] 날짜 선택 시 입력창으로 연결
+function selectDate(dateStr) {
+    document.getElementById('date').value = dateStr;
+    // 시각적인 피드백을 위해 입력창으로 스크롤
+    document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
+}
+
+// [3] 월 변경 함수
+function changeMonth(diff) {
+    currentViewDate.setMonth(currentViewDate.getMonth() + diff);
+    renderCalendar();
+}
+
 // script.js 상단에 로그인/로그아웃 함수 추가
 async function login() {
     try {
