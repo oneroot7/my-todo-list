@@ -59,10 +59,25 @@ function renderCalendar() {
     }
 }
 
-// [2] 날짜 선택 시 입력창으로 연결
+// [2] 날짜 선택 시 로직 수정 (입력 or 수정 전환)
 function selectDate(dateStr) {
-    document.getElementById('date').value = dateStr;
-    // 시각적인 피드백을 위해 입력창으로 스크롤
+    // 1. 해당 날짜에 저장된 일정이 있는지 찾습니다.
+    const existingEvent = allSchedules.find(s => s.date === dateStr);
+
+    if (existingEvent) {
+        // 2. 일정이 있다면 수정 모드로 진입 (기존 editSchedule 함수 호출)
+        editSchedule(existingEvent.id);
+        console.log(`${dateStr}의 일정을 수정합니다.`);
+    } else {
+        // 3. 일정이 없다면 새 입력 모드
+        resetForm(); // 기존 입력값 비우기
+        document.getElementById('date').value = dateStr;
+        editId = null;
+        document.getElementById('submit-btn').innerText = "일정 추가하기";
+        console.log(`${dateStr}에 새로운 일정을 등록합니다.`);
+    }
+
+    // 4. 입력 폼으로 부드럽게 이동
     document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
 }
 
