@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>업무 일정 관리</title>
+    <title>업무 일정 관리 시스템</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="login-section" style="text-align: center; margin-top: 100px; display: none;">
         <div class="login-box" style="display: inline-block; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-            <h2 style="border: none; padding: 0; margin-bottom: 20px;">📅 일정 관리 로그인</h2>
+            <h2 style="margin-bottom: 20px;">📅 일정 관리 로그인</h2>
             <p style="color: #666; margin-bottom: 30px;">구글 계정으로 안전하게 시작하세요.</p>
             <button onclick="login()" style="padding: 15px 30px; font-size: 1.1rem; cursor: pointer; border-radius: 12px; border: none; background: #4285F4; color: white; font-weight: bold; width: 100%;">
                 Google 계정으로 로그인
@@ -24,35 +24,40 @@
             <button onclick="logout()" style="background: none; border: none; color: #ff4d4d; cursor: pointer; text-decoration: underline; font-size: 0.9rem;">로그아웃</button>
         </div>
 
-<div id="main-content" class="todo-container" style="display: none;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <span id="user-info" style="font-size: 0.9rem; color: #666; font-weight: bold;"></span>
-        <button onclick="logout()" style="background: none; border: none; color: #ff4d4d; cursor: pointer; text-decoration: underline;">로그아웃</button>
-    </div>
-
-    <div id="calendar-container" class="calendar-card">
-        <div class="calendar-header">
-            <button onclick="changeMonth(-1)">◀</button>
-            <h3 id="calendar-title">2024년 5월</h3>
-            <button onclick="changeMonth(1)">▶</button>
-        </div>
-        <div id="calendar-grid" class="calendar-grid">
+        <div id="calendar-container" class="calendar-card">
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">◀</button>
+                <h3 id="calendar-title"></h3>
+                <button onclick="changeMonth(1)">▶</button>
             </div>
-    </div>
+            <div id="calendar-grid" class="calendar-grid">
+                </div>
+        </div>
 
-    <h2 id="form-title" style="margin-top: 30px;">📅 일정 등록</h2>
-    <div class="input-form">
-        <label>날짜</label>
-        <input type="date" id="date">
-        <button onclick="addSchedule()" id="submit-btn">일정 추가하기</button>
-    </div>
-    
-</div>
+        <h2 id="form-title">📅 일정 등록</h2>
+        <div class="input-form">
+            <label>날짜</label>
+            <input type="date" id="date">
+            
+            <label>장소</label>
+            <input type="text" id="location" placeholder="예: 미팅룸 A">
+            
+            <label>종료 시간</label>
+            <input type="time" id="end-time" value="18:00">
+            
+            <label>작성자</label>
+            <input type="text" id="teammates" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+            
+            <label>메모</label>
+            <textarea id="memo" placeholder="상세 내용을 입력하세요"></textarea>
+            
+            <button onclick="addSchedule()" id="submit-btn">일정 추가하기</button>
+        </div>
 
         <hr style="margin: 40px 0; border: 0; border-top: 1px solid #eee;">
 
         <div class="list-header">
-            <h2>📋 일정 리스트</h2>
+            <h2>📋 나의 일정 리스트</h2>
             <div class="search-group">
                 <input type="text" id="search-input" placeholder="검색어 입력..." oninput="filterSchedules()">
                 <button class="view-btn" onclick="displaySchedules(true)">리스트 보기</button>
@@ -77,55 +82,38 @@
   measurementId: "G-V7YRZG9FJ6"
 };
 
-        // Firebase 초기화
         const app = initializeApp(firebaseConfig);
         
-        // window 객체에 담아 script.js에서 접근 가능하게 설정
         window.db = getFirestore(app);
         window.auth = getAuth(app);
         window.provider = new GoogleAuthProvider();
         window.signInWithPopup = signInWithPopup;
         window.signOut = signOut;
 
-        // 로그인 상태 실시간 감시
-onAuthStateChanged(window.auth, (user) => {
-    const loginSection = document.getElementById('login-section');
-    const mainContent = document.getElementById('main-content');
-    const userInfo = document.getElementById('user-info');
-    const authorInput = document.getElementById('teammates'); // 작성자 입력란
+        // 로그인 상태 감시 및 UI 업데이트
+        onAuthStateChanged(window.auth, (user) => {
+            const loginSection = document.getElementById('login-section');
+            const mainContent = document.getElementById('main-content');
+            const userInfo = document.getElementById('user-info');
+            const authorInput = document.getElementById('teammates');
 
-    if (user) {
-        // [1] 로그인 성공 상태
-        loginSection.style.display = 'none';
-        mainContent.style.display = 'block';
+            if (user) {
+                loginSection.style.display = 'none';
+                mainContent.style.display = 'block';
+                userInfo.innerText = `${user.displayName}님 환영합니다.`;
+                
+                if (authorInput) {
+                    authorInput.value = user.displayName;
+                }
 
-        // [2] 사용자 정보 표시 (구글 계정 이름)
-        userInfo.innerText = `${user.displayName}님 환영합니다.`;
-
-        // [3] 작성자 칸에 구글 이름 자동 입력 및 수정 불가 설정
-        if (authorInput) {
-            authorInput.value = user.displayName;
-            authorInput.readOnly = true;
-        }
-
-        // [4] 초기 화면 구성: 달력 그리기 + 내 일정 불러오기
-        renderCalendar();      // 달력 생성
-        displaySchedules(true); // 내 DB 데이터 불러오기
-
-        console.log("로그인 완료:", user.email);
-
-    } else {
-        // [5] 로그아웃 상태
-        loginSection.style.display = 'block';
-        mainContent.style.display = 'none';
-        
-        // 데이터 초기화 (보안 및 UI 정리)
-        userInfo.innerText = '';
-        if (authorInput) authorInput.value = '';
-        
-        console.log("로그아웃 상태입니다.");
-    }
-});
+                // 달력과 리스트 초기화
+                if (typeof renderCalendar === 'function') renderCalendar();
+                if (typeof displaySchedules === 'function') displaySchedules(true);
+            } else {
+                loginSection.style.display = 'block';
+                mainContent.style.display = 'none';
+            }
+        });
     </script>
 
     <script src="script.js"></script>
