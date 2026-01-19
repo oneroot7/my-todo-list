@@ -105,7 +105,7 @@ function renderList(data) {
             <strong>[${item.date}]</strong><br>
             📍 장소: ${item.location}<br> 
             🕒 종료: ${item.endTime}<br>
-            👥 팀원: ${item.teammates}<br>
+            👥 작성자: ${item.teammates}<br>
             📝 메모: ${item.memo}
             <div style="margin-top:10px;">
                 <button class="edit-btn" onclick="editSchedule('${item.id}')">수정</button>
@@ -167,10 +167,13 @@ async function editSchedule(id) {
 // script.js 내 resetForm 함수 수정
 function resetForm() {
     document.querySelectorAll('input, textarea').forEach(input => {
-        if (input.id === 'end-time') {
-            input.value = '18:00'; // 시간은 오후 6시로 초기화
+if (input.id === 'end-time') {
+            input.value = '18:00';
+        } else if (input.id === 'teammates') {
+            // ⭐️ 초기화 시에도 작성자 이름은 유지
+            input.value = user ? user.displayName : '';
         } else {
-            input.value = ''; // 나머지는 비움
+            input.value = '';
         }
     });
 }
