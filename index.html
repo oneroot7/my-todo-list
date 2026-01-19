@@ -92,6 +92,10 @@
                 loginSection.style.display = 'none';
                 mainContent.style.display = 'block';
                 document.getElementById('user-info').innerText = `${user.displayName}님 환영합니다.`;
+
+                // ⭐️ 작성자 칸에 구글 계정 이름 자동 세팅
+                document.getElementById('teammates').value = user.displayName;                
+                
                 // 로그인 성공 후 자동으로 리스트 로드
                 if (typeof displaySchedules === 'function') {
                     displaySchedules(true);
