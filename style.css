@@ -261,3 +261,18 @@ button[onclick="addSchedule()"] {
 .date-number {
     margin-bottom: 2px;
 }
+/* 토요일과 일요일의 열 색상을 살짝 다르게 하고 싶다면 (선택사항) */
+.calendar-grid div:nth-child(7n-1) { /* 토요일 열 */
+    color: #4285F4;
+}
+.calendar-grid div:nth-child(7n) { /* 일요일 열 */
+    color: #ff4d4d;
+}
+
+/* 요일 라벨 스타일 보강 */
+.day-label {
+    padding-bottom: 10px;
+    font-weight: bold;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 5px;
+}
