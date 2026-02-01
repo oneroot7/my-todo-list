@@ -293,3 +293,21 @@ button[onclick="addSchedule()"] {
 .calendar-day {
     min-height: 100px; 
 }
+/* style.css */
+.week-summary-badge {
+    font-size: 0.6rem;
+    color: #444;
+    background-color: #fff9c4; /* 연한 노란색 배경으로 강조 */
+    padding: 4px;
+    margin-top: auto; /* 칸의 맨 아래쪽으로 붙임 */
+    width: 100%;
+    border-radius: 0 0 8px 8px;
+    line-height: 1.4;
+    text-align: center;
+    font-weight: bold;
+}
+
+.calendar-day {
+    min-height: 120px; /* 요약 정보까지 들어가므로 높이를 충분히 확보 */
+    justify-content: flex-start;
+}
