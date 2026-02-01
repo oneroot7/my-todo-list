@@ -14,20 +14,28 @@ function renderCalendar() {
     const month = currentViewDate.getMonth();
     title.innerText = `${year}년 ${month + 1}월`;
 
-    // 요일 헤더 (동일)
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
+// 1. 요일 순서 변경 (일요일을 마지막으로)
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
     days.forEach(day => {
         const div = document.createElement('div');
         div.className = 'day-label';
+        // 일요일만 빨간색으로 표시하고 싶다면 아래 조건 추가
+        if (day === '일') div.style.color = '#ff4d4d';
         div.innerText = day;
         grid.appendChild(div);
     });
 
-    const firstDay = new Date(year, month, 1).getDay();
+    // 2. 월요일 시작 기준으로 첫 번째 날의 공백 계산
+    // getDay()는 일(0) ~ 토(6)를 반환하므로, 월요일 시작으로 변환 필요
+    let firstDay = new Date(year, month, 1).getDay(); // 0(일) ~ 6(토)
+    let spaces = firstDay === 0 ? 6 : firstDay - 1; // 일요일이면 6칸, 아니면 요일번호-1
+
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
-
+    // 시작일 앞 빈칸 채우기
+    for (let i = 0; i < spaces; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
     for (let i = 1; i <= lastDate; i++) {
         const dateDiv = document.createElement('div');
         dateDiv.className = 'calendar-day';
@@ -58,13 +66,13 @@ function renderCalendar() {
             }
         });
 
-        dateDiv.onclick = () => selectDate(dateStr);
-        
-        const today = new Date();
-        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            dateDiv.classList.add('today');
+// 요일 확인 (현재 날짜의 요일이 일요일인지 확인)
+        const currentDayOfWeek = new Date(year, month, i).getDay();
+        if (currentDayOfWeek === 0) {
+            dateDiv.style.color = '#ff4d4d'; // 일요일 숫자를 빨간색으로
         }
 
+        dateDiv.onclick = () => selectDate(dateStr);
         grid.appendChild(dateDiv);
     }
 }
