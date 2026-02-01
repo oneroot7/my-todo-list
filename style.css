@@ -324,3 +324,12 @@ button[onclick="addSchedule()"] {
 .empty-last-week {
     background-color: #fafafa;
 }
+/* 이전/다음 달 날짜 스타일 */
+.calendar-day.other-month {
+    color: #ccc !important; /* 날짜 숫자 흐리게 */
+    background-color: #fafafa;
+}
+
+.calendar-day.other-month .calendar-event-badge {
+    opacity: 0.6; /* 이전 달 일정 배지도 약간 흐리게 */
+}
