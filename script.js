@@ -55,9 +55,9 @@ function renderCalendar() {
     let spaces = firstDay === 0 ? 6 : firstDay - 1;
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    // 시작일 앞 빈칸
     for (let i = 0; i < spaces; i++) grid.appendChild(document.createElement('div'));
 
+    // 주간 합계 변수 (월~금 데이터만 담을 예정)
     let weekScheduleCount = 0;
     let weekExtraMinutes = 0;
 
@@ -73,15 +73,29 @@ function renderCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         
-        weekScheduleCount += dayEvents.length;
+        // ⭐️ 요일 확인 (1:월, 2:화, 3:수, 4:목, 5:금)
+        const dayOfWeek = new Date(year, month, i).getDay();
+        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+        // 월~금인 경우에만 합계에 누적
+        if (isWeekday) {
+            weekScheduleCount += dayEvents.length;
+            dayEvents.forEach(event => {
+                if (event.endTime) {
+                    const [h, m] = event.endTime.split(':').map(Number);
+                    const diff = (h * 60 + m) - (18 * 60);
+                    if (diff > 0) weekExtraMinutes += diff;
+                }
+            });
+        }
+
+        // 해당 일자 장소/시간 표시 (표시는 모든 요일 다 함)
         dayEvents.forEach(event => {
-            // 장소 표시
             const locBadge = document.createElement('div');
             locBadge.className = 'calendar-event-badge';
             locBadge.innerText = event.location;
             dateDiv.appendChild(locBadge);
 
-            // 시간/초과시간 표시
             if (event.endTime) {
                 const timeBadge = document.createElement('div');
                 timeBadge.className = 'calendar-time-badge';
@@ -91,7 +105,6 @@ function renderCalendar() {
                 const [h, m] = event.endTime.split(':').map(Number);
                 const diff = (h * 60 + m) - (18 * 60);
                 if (diff > 0) {
-                    weekExtraMinutes += diff;
                     const extraBadge = document.createElement('div');
                     extraBadge.className = 'calendar-extra-badge';
                     extraBadge.innerText = `(+${Math.floor(diff/60)}h ${diff%60}m)`;
@@ -100,52 +113,47 @@ function renderCalendar() {
             }
         });
 
-        // ⭐️ 핵심 체크: 달력의 맨 오른쪽(일요일 열)인지 확인
         const isSundayColumn = (spaces + i) % 7 === 0;
 
         if (isSundayColumn) {
-            // [경우 1] 일요일 칸에 주간 합계 표시
+            // [경우 1] 실제 일요일 칸에 주간 합계 표시
             showWeeklySummary(dateDiv, weekScheduleCount, weekExtraMinutes);
             weekScheduleCount = 0;
             weekExtraMinutes = 0;
         } else if (i === lastDate) {
-            // [경우 2] 월의 마지막 날이 일요일이 아닐 때
-            // 다음 일요일 위치까지 빈칸을 채우고 마지막에 네모 박스 추가
-            grid.appendChild(dateDiv); // 현재 날짜 먼저 추가
-            
+            // [경우 2] 월말인데 일요일이 아님 -> 일요일 위치까지 칸 채우고 박스 표시
+            grid.appendChild(dateDiv);
             let remainingSpaces = 7 - ((spaces + i) % 7);
             for (let s = 0; s < remainingSpaces; s++) {
                 const emptyDiv = document.createElement('div');
                 emptyDiv.className = 'calendar-day empty-last-week';
-                
-                // 마지막 빈칸(일요일 위치)에 합계 박스 생성
                 if (s === remainingSpaces - 1) {
                     showWeeklySummary(emptyDiv, weekScheduleCount, weekExtraMinutes, true);
                 }
                 grid.appendChild(emptyDiv);
             }
-            return; // 루프 종료
+            return;
         }
 
-        const currentDayOfWeek = new Date(year, month, i).getDay();
-        if (currentDayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
+        if (dayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
         dateDiv.onclick = () => selectDate(dateStr);
         grid.appendChild(dateDiv);
     }
 }
 
-// 합계를 그려주는 공통 함수
+// 합계 표시 함수 (명칭을 '주간 합계'로 통일)
 function showWeeklySummary(targetDiv, count, minutes, isExtraBox = false) {
     if (count === 0 && minutes === 0) return;
 
     const summaryDiv = document.createElement('div');
+    // 월말 빈칸에 그릴 때는 박스 스타일, 실제 일요일 칸은 배지 스타일
     summaryDiv.className = isExtraBox ? 'week-summary-box' : 'week-summary-badge';
     
     const totalH = Math.floor(minutes / 60);
     const totalM = minutes % 60;
     
     summaryDiv.innerHTML = `
-        <div class="summary-title">${isExtraBox ? '월말 결산' : '주간 합계'}</div>
+        <div class="summary-title">주간 합계</div>
         <div>횟수: ${count}회</div>
         <div>초과: ${totalH}h ${totalM}m</div>
     `;
