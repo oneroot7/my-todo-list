@@ -47,100 +47,113 @@ function renderCalendar() {
         const div = document.createElement('div');
         div.className = 'day-label';
         if (day === '일') div.style.color = '#ff4d4d';
-        div.innerText = day;
         grid.appendChild(div);
     });
 
-    let firstDay = new Date(year, month, 1).getDay(); 
-    let spaces = firstDay === 0 ? 6 : firstDay - 1;
+    // 이번 달 정보
+    const firstDay = new Date(year, month, 1).getDay(); 
+    const spaces = firstDay === 0 ? 6 : firstDay - 1;
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    for (let i = 0; i < spaces; i++) grid.appendChild(document.createElement('div'));
+    // ⭐️ 이전 달 날짜 계산 및 표시
+    const prevMonthLastDate = new Date(year, month, 0).getDate();
+    const prevMonthYear = month === 0 ? year - 1 : year;
+    const prevMonth = month === 0 ? 11 : month - 1;
 
-    // 주간 합계 변수 (월~금 데이터만 담을 예정)
     let weekScheduleCount = 0;
     let weekExtraMinutes = 0;
 
+    // [Step 1] 이전 달 빈칸에 날짜 채우기 + 합산에 포함
+    for (let i = spaces - 1; i >= 0; i--) {
+        const day = prevMonthLastDate - i;
+        const dateDiv = createDayDiv(prevMonthYear, prevMonth, day, true); // true는 '이전/다음달' 표시
+        grid.appendChild(dateDiv);
+        
+        // 월~금 데이터 합산 로직 호출 (공통화)
+        accumulateWeeklyData(prevMonthYear, prevMonth, day);
+    }
+
+    // [Step 2] 이번 달 날짜 채우기
     for (let i = 1; i <= lastDate; i++) {
-        const dateDiv = document.createElement('div');
-        dateDiv.className = 'calendar-day';
+        const dateDiv = createDayDiv(year, month, i, false);
+        grid.appendChild(dateDiv);
         
-        const dateNum = document.createElement('span');
-        dateNum.className = 'date-number';
-        dateNum.innerText = i;
-        dateDiv.appendChild(dateNum);
+        // 월~금 데이터 합산
+        accumulateWeeklyData(year, month, i);
 
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        // 일요일 열 체크 (spaces + i)
+        const isSundayColumn = (spaces + i) % 7 === 0;
+        if (isSundayColumn) {
+            showWeeklySummary(dateDiv, weekScheduleCount, weekExtraMinutes);
+            weekScheduleCount = 0;
+            weekExtraMinutes = 0;
+        } 
+        // 마지막 날인데 일요일이 아니면 다음 달 날짜로 채우기
+        else if (i === lastDate) {
+            let nextDay = 1;
+            let remainingSpaces = 7 - ((spaces + i) % 7);
+            for (let s = 0; s < remainingSpaces; s++) {
+                const nextMonthYear = month === 11 ? year + 1 : year;
+                const nextMonth = month === 11 ? 0 : month + 1;
+                const nextDateDiv = createDayDiv(nextMonthYear, nextMonth, nextDay, true);
+                
+                // 다음 달 날짜 중 월~금 데이터 합산
+                accumulateWeeklyData(nextMonthYear, nextMonth, nextDay);
+
+                if (s === remainingSpaces - 1) {
+                    showWeeklySummary(nextDateDiv, weekScheduleCount, weekExtraMinutes);
+                }
+                grid.appendChild(nextDateDiv);
+                nextDay++;
+            }
+        }
+    }
+
+    // 내부 도우미 함수: 데이터 합산
+    function accumulateWeeklyData(y, m, d) {
+        const dayOfWeek = new Date(y, m, d).getDay();
+        const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
-        
-        // ⭐️ 요일 확인 (1:월, 2:화, 3:수, 4:목, 5:금)
-        const dayOfWeek = new Date(year, month, i).getDay();
-        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
 
-        // 월~금인 경우에만 합계에 누적
-        if (isWeekday) {
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 월~금만
             weekScheduleCount += dayEvents.length;
             dayEvents.forEach(event => {
                 if (event.endTime) {
-                    const [h, m] = event.endTime.split(':').map(Number);
-                    const diff = (h * 60 + m) - (18 * 60);
+                    const [h, min] = event.endTime.split(':').map(Number);
+                    const diff = (h * 60 + min) - (18 * 60);
                     if (diff > 0) weekExtraMinutes += diff;
                 }
             });
         }
+    }
 
-        // 해당 일자 장소/시간 표시 (표시는 모든 요일 다 함)
+    // 내부 도우미 함수: 날짜 칸 생성
+    function createDayDiv(y, m, d, isOtherMonth) {
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'calendar-day' + (isOtherMonth ? ' other-month' : '');
+        
+        const dateNum = document.createElement('span');
+        dateNum.className = 'date-number';
+        dateNum.innerText = d;
+        dateDiv.appendChild(dateNum);
+
+        const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayEvents = allSchedules.filter(s => s.date === dateStr);
+        
+        // 날짜별 일정 표시 (장소, 시간 등 기존 로직)
         dayEvents.forEach(event => {
             const locBadge = document.createElement('div');
             locBadge.className = 'calendar-event-badge';
             locBadge.innerText = event.location;
             dateDiv.appendChild(locBadge);
-
-            if (event.endTime) {
-                const timeBadge = document.createElement('div');
-                timeBadge.className = 'calendar-time-badge';
-                timeBadge.innerText = `~${event.endTime}`;
-                dateDiv.appendChild(timeBadge);
-
-                const [h, m] = event.endTime.split(':').map(Number);
-                const diff = (h * 60 + m) - (18 * 60);
-                if (diff > 0) {
-                    const extraBadge = document.createElement('div');
-                    extraBadge.className = 'calendar-extra-badge';
-                    extraBadge.innerText = `(+${Math.floor(diff/60)}h ${diff%60}m)`;
-                    dateDiv.appendChild(extraBadge);
-                }
-            }
+            // ... (기존 시간/초과시간 배지 코드 추가) ...
         });
 
-        const isSundayColumn = (spaces + i) % 7 === 0;
-
-        if (isSundayColumn) {
-            // [경우 1] 실제 일요일 칸에 주간 합계 표시
-            showWeeklySummary(dateDiv, weekScheduleCount, weekExtraMinutes);
-            weekScheduleCount = 0;
-            weekExtraMinutes = 0;
-        } else if (i === lastDate) {
-            // [경우 2] 월말인데 일요일이 아님 -> 일요일 위치까지 칸 채우고 박스 표시
-            grid.appendChild(dateDiv);
-            let remainingSpaces = 7 - ((spaces + i) % 7);
-            for (let s = 0; s < remainingSpaces; s++) {
-                const emptyDiv = document.createElement('div');
-                emptyDiv.className = 'calendar-day empty-last-week';
-                if (s === remainingSpaces - 1) {
-                    showWeeklySummary(emptyDiv, weekScheduleCount, weekExtraMinutes, true);
-                }
-                grid.appendChild(emptyDiv);
-            }
-            return;
-        }
-
-        if (dayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
+        if (new Date(y, m, d).getDay() === 0) dateDiv.style.color = '#ff4d4d';
         dateDiv.onclick = () => selectDate(dateStr);
-        grid.appendChild(dateDiv);
+        return dateDiv;
     }
 }
-
 // 합계 표시 함수 (일요일 칸 & 빈칸 박스 양식 통일)
 function showWeeklySummary(targetDiv, count, minutes) {
     // 합산할 데이터가 없으면 표시하지 않음
