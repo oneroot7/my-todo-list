@@ -276,3 +276,20 @@ button[onclick="addSchedule()"] {
     border-bottom: 2px solid #eee;
     margin-bottom: 5px;
 }
+/* style.css 에 추가 */
+
+/* 연장 시간 표시 스타일 */
+.calendar-extra-badge {
+    font-size: 0.6rem;
+    color: #f57c00; /* 오렌지색 계열로 강조 */
+    font-weight: bold;
+    margin-top: -2px; /* 시간 배지와 붙어 보이게 조정 */
+    margin-bottom: 5px;
+    width: 90%;
+    text-align: center;
+}
+
+/* 날짜 칸 높이를 조금 더 넉넉하게 조정 */
+.calendar-day {
+    min-height: 100px; 
+}
