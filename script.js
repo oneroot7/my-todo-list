@@ -55,12 +55,9 @@ function renderCalendar() {
     let spaces = firstDay === 0 ? 6 : firstDay - 1;
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    // 시작일 앞 빈칸 채우기
-    for (let i = 0; i < spaces; i++) {
-        grid.appendChild(document.createElement('div'));
-    }
+    // 시작일 앞 빈칸
+    for (let i = 0; i < spaces; i++) grid.appendChild(document.createElement('div'));
 
-    // ⭐️ 주간 합산 변수를 루프 밖으로 뺍니다.
     let weekScheduleCount = 0;
     let weekExtraMinutes = 0;
 
@@ -76,15 +73,15 @@ function renderCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         
-        // 데이터 누적
         weekScheduleCount += dayEvents.length;
-
         dayEvents.forEach(event => {
+            // 장소 표시
             const locBadge = document.createElement('div');
             locBadge.className = 'calendar-event-badge';
             locBadge.innerText = event.location;
             dateDiv.appendChild(locBadge);
 
+            // 시간/초과시간 표시
             if (event.endTime) {
                 const timeBadge = document.createElement('div');
                 timeBadge.className = 'calendar-time-badge';
@@ -103,38 +100,56 @@ function renderCalendar() {
             }
         });
 
-        // ⭐️ 핵심 수정: 현재 칸이 달력의 맨 오른쪽(일요일)인지 확인
-        // (빈칸 개수 + 현재 날짜)를 7로 나눈 나머지가 0이면 일요일입니다.
+        // ⭐️ 핵심 체크: 달력의 맨 오른쪽(일요일 열)인지 확인
         const isSundayColumn = (spaces + i) % 7 === 0;
 
-        if (isSundayColumn || i === lastDate) {
-            const summaryDiv = document.createElement('div');
-            summaryDiv.className = 'week-summary-badge';
-            const totalH = Math.floor(weekExtraMinutes / 60);
-            const totalM = weekExtraMinutes % 60;
-            
-            // 데이터가 있을 때만 표시
-            if (weekScheduleCount > 0 || weekExtraMinutes > 0) {
-                summaryDiv.innerHTML = `<div>주간: ${weekScheduleCount}회<br>초과: ${totalH}h ${totalM}m</div>`;
-                dateDiv.appendChild(summaryDiv);
-            }
-            
-            // 일요일이 지나면 무조건 초기화 (다음 주 계산 시작)
+        if (isSundayColumn) {
+            // [경우 1] 일요일 칸에 주간 합계 표시
+            showWeeklySummary(dateDiv, weekScheduleCount, weekExtraMinutes);
             weekScheduleCount = 0;
             weekExtraMinutes = 0;
+        } else if (i === lastDate) {
+            // [경우 2] 월의 마지막 날이 일요일이 아닐 때
+            // 다음 일요일 위치까지 빈칸을 채우고 마지막에 네모 박스 추가
+            grid.appendChild(dateDiv); // 현재 날짜 먼저 추가
+            
+            let remainingSpaces = 7 - ((spaces + i) % 7);
+            for (let s = 0; s < remainingSpaces; s++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day empty-last-week';
+                
+                // 마지막 빈칸(일요일 위치)에 합계 박스 생성
+                if (s === remainingSpaces - 1) {
+                    showWeeklySummary(emptyDiv, weekScheduleCount, weekExtraMinutes, true);
+                }
+                grid.appendChild(emptyDiv);
+            }
+            return; // 루프 종료
         }
 
         const currentDayOfWeek = new Date(year, month, i).getDay();
         if (currentDayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
         dateDiv.onclick = () => selectDate(dateStr);
-        
-        const today = new Date();
-        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            dateDiv.classList.add('today');
-        }
-
         grid.appendChild(dateDiv);
     }
+}
+
+// 합계를 그려주는 공통 함수
+function showWeeklySummary(targetDiv, count, minutes, isExtraBox = false) {
+    if (count === 0 && minutes === 0) return;
+
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = isExtraBox ? 'week-summary-box' : 'week-summary-badge';
+    
+    const totalH = Math.floor(minutes / 60);
+    const totalM = minutes % 60;
+    
+    summaryDiv.innerHTML = `
+        <div class="summary-title">${isExtraBox ? '월말 결산' : '주간 합계'}</div>
+        <div>횟수: ${count}회</div>
+        <div>초과: ${totalH}h ${totalM}m</div>
+    `;
+    targetDiv.appendChild(summaryDiv);
 }
 
 // [4] 날짜 선택 및 수정/등록 전환
