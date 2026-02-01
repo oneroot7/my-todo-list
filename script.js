@@ -1,225 +1,235 @@
-// script.js 상단에 추가
+// [1] 전역 변수 설정
 let currentViewDate = new Date();
-
-// 전역 변수로 데이터를 담아둘 변수 하나 추가 (달력 표시용)
 let allSchedules = [];
-
-// [1] 달력 그리기 함수
-function renderCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    const title = document.getElementById('calendar-title');
-    grid.innerHTML = '';
-
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    title.innerText = `${year}년 ${month + 1}월`;
-
-// 1. 요일 순서 변경 (일요일을 마지막으로)
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
-    days.forEach(day => {
-        const div = document.createElement('div');
-        div.className = 'day-label';
-        // 일요일만 빨간색으로 표시하고 싶다면 아래 조건 추가
-        if (day === '일') div.style.color = '#ff4d4d';
-        div.innerText = day;
-        grid.appendChild(div);
-    });
-
-    // 2. 월요일 시작 기준으로 첫 번째 날의 공백 계산
-    // getDay()는 일(0) ~ 토(6)를 반환하므로, 월요일 시작으로 변환 필요
-    let firstDay = new Date(year, month, 1).getDay(); // 0(일) ~ 6(토)
-    let spaces = firstDay === 0 ? 6 : firstDay - 1; // 일요일이면 6칸, 아니면 요일번호-1
-
-    const lastDate = new Date(year, month + 1, 0).getDate();
-
-    // 시작일 앞 빈칸 채우기
-    for (let i = 0; i < spaces; i++) {
-        grid.appendChild(document.createElement('div'));
-    }
-    for (let i = 1; i <= lastDate; i++) {
-        const dateDiv = document.createElement('div');
-        dateDiv.className = 'calendar-day';
-        
-        // 1. 날짜 숫자
-        const dateNum = document.createElement('span');
-        dateNum.className = 'date-number';
-        dateNum.innerText = i;
-        dateDiv.appendChild(dateNum);
-    
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        
-        // 2. 해당 날짜 일정 찾기
-        const dayEvents = allSchedules.filter(s => s.date === dateStr);
-        dayEvents.forEach(event => {
-// 1. 장소 표시
-    const locBadge = document.createElement('div');
-    locBadge.className = 'calendar-event-badge';
-    locBadge.innerText = event.location;
-    dateDiv.appendChild(locBadge);
-
-    // 2. 종료 시간 표시
-    if (event.endTime) {
-        const timeBadge = document.createElement('div');
-        timeBadge.className = 'calendar-time-badge';
-        timeBadge.innerText = `~${event.endTime}`;
-        dateDiv.appendChild(timeBadge);
-
-        // ⭐️ [추가] 18:00 이후 연장 시간 계산 로직
-        const [hours, minutes] = event.endTime.split(':').map(Number);
-        const endTotalMinutes = hours * 60 + minutes;
-        const defaultTotalMinutes = 18 * 60; // 18:00 기준
-
-        if (endTotalMinutes > defaultTotalMinutes) {
-            const diff = endTotalMinutes - defaultTotalMinutes;
-            const diffH = Math.floor(diff / 60);
-            const diffM = diff % 60;
-
-            const extraBadge = document.createElement('div');
-            extraBadge.className = 'calendar-extra-badge';
-            
-            // "1시간 20분" 또는 "20분" 형태로 표시
-            let timeText = "";
-            if (diffH > 0) timeText += `${diffH}시간 `;
-            if (diffM > 0) timeText += `${diffM}분`;
-            extraBadge.innerText = `(+${timeText.trim()})`;
-            
-            dateDiv.appendChild(extraBadge);
-        }
-    }
-});
-
-// 요일 확인 (현재 날짜의 요일이 일요일인지 확인)
-        const currentDayOfWeek = new Date(year, month, i).getDay();
-        if (currentDayOfWeek === 0) {
-            dateDiv.style.color = '#ff4d4d'; // 일요일 숫자를 빨간색으로
-        }
-
-        dateDiv.onclick = () => selectDate(dateStr);
-        grid.appendChild(dateDiv);
-    }
-}
-
-// [2] 날짜 선택 시 로직 수정 (입력 or 수정 전환)
-function selectDate(dateStr) {
-    // 1. 해당 날짜의 일정이 있는지 확인
-    const existingEvent = allSchedules.find(s => s.date === dateStr);
-
-    if (existingEvent) {
-        // 이미 일정이 있으면 수정 모드
-        editSchedule(existingEvent.id);
-    } else {
-        // 일정이 없으면 새로 입력 모드
-        resetForm(); 
-        document.getElementById('date').value = dateStr; // 달력에서 클릭한 날짜가 자동으로 들어감
-        editId = null;
-        document.getElementById('submit-btn').innerText = "일정 추가하기";
-    }
-
-    // 2. 입력 폼으로 이동
-    document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
-}
-
-// [3] 월 변경 함수
-function changeMonth(diff) {
-    currentViewDate.setMonth(currentViewDate.getMonth() + diff);
-    renderCalendar();
-}
-
-// script.js 상단에 로그인/로그아웃 함수 추가
-async function login() {
-    try {
-        await window.signInWithPopup(window.auth, window.provider);
-    } catch (error) {
-        console.error("로그인 실패:", error);
-    }
-}
-
-async function logout() {
-    await window.signOut(window.auth);
-}
-// 페이지 로드 시 리스트를 바로 보여주지 않도록 수정
-window.onload = function() {
-    // 아무것도 하지 않거나, 빈 상태를 유지합니다.
-    const list = document.getElementById('schedule-list');
-    list.innerHTML = '<p style="text-align:center; color:#888;">"리스트 보기" 버튼을 클릭하면 일정이 나타납니다.</p>';
-};
-
-// index.html에서 window.db로 설정한 객체를 가져와서 사용합니다.
-// 이 코드는 Firebase 설정이 완료된 index.html과 함께 작동해야 합니다.
-
 let editId = null;
 
-// 1. 일정 추가 및 수정 (Create & Update)
-async function addSchedule() {
-    const user = window.auth.currentUser; // 현재 로그인된 유저 확인
-    if (!user) return alert("로그인이 필요합니다.");
-    
-    const date = document.getElementById('date').value;
-    const location = document.getElementById('location').value;
-    const endTime = document.getElementById('end-time').value;
-    const teammates = document.getElementById('teammates').value;
-    const memo = document.getElementById('memo').value;
-
-    if (!date || !location) {
-        alert("날짜와 장소를 입력해주세요!");
-        return;
-    }
-
-try {
-        const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        const scheduleData = {
-            date, location, endTime, teammates, memo,
-            userId: user.uid, // ⭐️ 유저 고유 ID 저장
-            timestamp: Date.now()
-        };
-
-        if (editId) {
-            await updateDoc(doc(window.db, "schedules", editId), scheduleData);
-            editId = null;
-        } else {
-            await addDoc(collection(window.db, "schedules"), scheduleData);
-        }
-        resetForm();
-        displaySchedules(true);
-    } catch (e) { console.error(e); }
-}
-
-// [1] 데이터를 먼저 가져오고 달력을 그리도록 displaySchedules 수정
+// [2] 일정 불러오기 및 달력/리스트 업데이트
 async function displaySchedules(isSorted = false) {
     const user = window.auth.currentUser;
     if (!user) return;
 
     try {
         const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        const q = query(collection(window.db, "schedules"), where("userId", "==", user.uid), orderBy("date", "desc"));
-        const querySnapshot = await getDocs(q);
         
-        allSchedules = []; // 전역 변수 초기화
+        // 내 아이디와 일치하는 데이터만 최신순으로 가져오기
+        const q = query(
+            collection(window.db, "schedules"), 
+            where("userId", "==", user.uid), 
+            orderBy("date", "desc")
+        );
+        
+        const querySnapshot = await getDocs(q);
+        allSchedules = [];
         querySnapshot.forEach((doc) => {
             allSchedules.push({ id: doc.id, ...doc.data() });
         });
 
-        renderList(allSchedules); // 리스트 그리기
-        renderCalendar();         // ⭐️ 데이터 로드 후 달력 다시 그리기
+        renderList(allSchedules);
+        renderCalendar(); // 데이터 로드 후 달력 갱신
     } catch (e) {
-        console.error("로딩 에러:", e);
+        console.error("데이터 로딩 에러: ", e);
     }
 }
 
-// 3. 화면에 그리기 (기존의 renderList 로직 활용)
+// [3] 달력 생성 함수 (월요일 시작 버전)
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const title = document.getElementById('calendar-title');
+    if (!grid || !title) return;
+    
+    grid.innerHTML = '';
+    const year = currentViewDate.getFullYear();
+    const month = currentViewDate.getMonth();
+    title.innerText = `${year}년 ${month + 1}월`;
+
+    // 요일 헤더 (월~일 순서)
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
+    days.forEach(day => {
+        const div = document.createElement('div');
+        div.className = 'day-label';
+        if (day === '일') div.style.color = '#ff4d4d';
+        div.innerText = day;
+        grid.appendChild(div);
+    });
+
+    // 월요일 시작 기준 공백 계산
+    let firstDay = new Date(year, month, 1).getDay(); 
+    let spaces = firstDay === 0 ? 6 : firstDay - 1;
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < spaces; i++) grid.appendChild(document.createElement('div'));
+
+    // 주간 합계 변수
+    let weekScheduleCount = 0;
+    let weekExtraMinutes = 0;
+
+    // 날짜 채우기
+    for (let i = 1; i <= lastDate; i++) {
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'calendar-day';
+        
+        const dateNum = document.createElement('span');
+        dateNum.className = 'date-number';
+        dateNum.innerText = i;
+        dateDiv.appendChild(dateNum);
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const dayEvents = allSchedules.filter(s => s.date === dateStr);
+        
+        weekScheduleCount += dayEvents.length;
+
+        dayEvents.forEach(event => {
+            // 장소 표시
+            const locBadge = document.createElement('div');
+            locBadge.className = 'calendar-event-badge';
+            locBadge.innerText = event.location;
+            dateDiv.appendChild(locBadge);
+
+            // 종료 시간 및 초과 시간 계산
+            if (event.endTime) {
+                const timeBadge = document.createElement('div');
+                timeBadge.className = 'calendar-time-badge';
+                timeBadge.innerText = `~${event.endTime}`;
+                dateDiv.appendChild(timeBadge);
+
+                const [h, m] = event.endTime.split(':').map(Number);
+                const diff = (h * 60 + m) - (18 * 60); // 18:00 기준
+                if (diff > 0) {
+                    weekExtraMinutes += diff;
+                    const extraBadge = document.createElement('div');
+                    extraBadge.className = 'calendar-extra-badge';
+                    const diffH = Math.floor(diff/60);
+                    const diffM = diff%60;
+                    extraBadge.innerText = `(+${diffH > 0 ? diffH + 'h ' : ''}${diffM}m)`;
+                    dateDiv.appendChild(extraBadge);
+                }
+            }
+        });
+
+        // 일요일 또는 월말일 때 주간 합계 표시
+        const currentDayOfWeek = new Date(year, month, i).getDay();
+        if (currentDayOfWeek === 0 || i === lastDate) {
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'week-summary-badge';
+            const totalH = Math.floor(weekExtraMinutes / 60);
+            const totalM = weekExtraMinutes % 60;
+            summaryDiv.innerHTML = `<div>주간: ${weekScheduleCount}회<br>초과: ${totalH}h ${totalM}m</div>`;
+            dateDiv.appendChild(summaryDiv);
+            
+            // 변수 초기화
+            weekScheduleCount = 0;
+            weekExtraMinutes = 0;
+        }
+
+        if (currentDayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
+        dateDiv.onclick = () => selectDate(dateStr);
+        
+        // 오늘 날짜 강조
+        const today = new Date();
+        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            dateDiv.classList.add('today');
+        }
+
+        grid.appendChild(dateDiv);
+    }
+}
+
+// [4] 날짜 선택 및 수정/등록 전환
+function selectDate(dateStr) {
+    const existingEvent = allSchedules.find(s => s.date === dateStr);
+    if (existingEvent) {
+        editSchedule(existingEvent.id);
+    } else {
+        resetForm();
+        document.getElementById('date').value = dateStr;
+        editId = null;
+        document.getElementById('submit-btn').innerText = "일정 추가하기";
+    }
+    document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
+}
+
+// [5] 월 변경
+window.changeMonth = function(diff) {
+    currentViewDate.setMonth(currentViewDate.getMonth() + diff);
+    renderCalendar();
+};
+
+// [6] 일정 저장/수정 로직
+window.addSchedule = async function() {
+    const user = window.auth.currentUser;
+    if (!user) return alert("로그인이 필요합니다.");
+
+    const date = document.getElementById('date').value;
+    const location = document.getElementById('location').value;
+    const endTime = document.getElementById('end-time').value;
+    const teammates = document.getElementById('teammates').value;
+    const memo = document.getElementById('memo').value;
+
+    if (!date || !location) return alert("날짜와 장소를 입력해주세요.");
+
+    try {
+        const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        
+        const scheduleData = {
+            date, location, endTime, teammates, memo,
+            userId: user.uid,
+            timestamp: Date.now()
+        };
+
+        if (editId) {
+            await updateDoc(doc(window.db, "schedules", editId), scheduleData);
+            editId = null;
+            document.getElementById('submit-btn').innerText = "일정 추가하기";
+        } else {
+            await addDoc(collection(window.db, "schedules"), scheduleData);
+        }
+        
+        resetForm();
+        displaySchedules();
+    } catch (e) {
+        console.error("저장 에러:", e);
+    }
+};
+
+// [7] 수정 모드 진입
+window.editSchedule = function(id) {
+    const item = allSchedules.find(s => s.id === id);
+    if (!item) return;
+
+    document.getElementById('date').value = item.date;
+    document.getElementById('location').value = item.location;
+    document.getElementById('end-time').value = item.endTime;
+    document.getElementById('teammates').value = item.teammates;
+    document.getElementById('memo').value = item.memo;
+
+    editId = id;
+    document.getElementById('submit-btn').innerText = "수정 완료하기";
+};
+
+// [8] 삭제 로직
+window.deleteSchedule = async function(id) {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    try {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        await deleteDoc(doc(window.db, "schedules", id));
+        displaySchedules();
+    } catch (e) {
+        console.error("삭제 에러:", e);
+    }
+};
+
+// [9] 하단 리스트 렌더링
 function renderList(data) {
     const list = document.getElementById('schedule-list');
+    if (!list) return;
     list.innerHTML = '';
     
     data.forEach(item => {
         const li = document.createElement('li');
         li.className = 'schedule-item';
         li.innerHTML = `
-            <strong>[${item.date}]</strong><br>
-            📍 장소: ${item.location}<br> 
-            🕒 종료: ${item.endTime}<br>
-            👥 작성자: ${item.teammates}<br>
-            📝 메모: ${item.memo}
+            <strong>[${item.date}]</strong> 📍 ${item.location} (종료: ${item.endTime})<br>
+            ✍️ 작성자: ${item.teammates} | 📝 메모: ${item.memo}
             <div style="margin-top:10px;">
                 <button class="edit-btn" onclick="editSchedule('${item.id}')">수정</button>
                 <button class="delete-btn" onclick="deleteSchedule('${item.id}')">삭제</button>
@@ -229,104 +239,25 @@ function renderList(data) {
     });
 }
 
-// 4. 삭제 기능 (Delete)
-async function deleteSchedule(id) {
-    if(!confirm("정말 삭제하시겠습니까?")) return;
-    
-    try {
-        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        await deleteDoc(doc(window.db, "schedules", id));
-        displaySchedules(true);
-    } catch (e) {
-        alert("삭제에 실패했습니다.");
-    }
-}
-
-// 5. 수정 데이터 세팅
-// 수정 기능 보강 (서버에서 데이터를 가져와 입력창에 채우기)
-async function editSchedule(id) {
-    try {
-        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        
-        // 1. Firestore에서 해당 ID의 문서 하나만 가져옵니다.
-        const docRef = doc(window.db, "schedules", id);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            const target = docSnap.data();
-
-            // 2. 각 입력창(input, textarea)에 서버에서 가져온 값을 채워넣습니다.
-            document.getElementById('date').value = target.date || "";
-            document.getElementById('location').value = target.location || "";
-            document.getElementById('end-time').value = target.endTime || "18:00"; // 기본값 설정
-            document.getElementById('teammates').value = target.teammates || "";
-            document.getElementById('memo').value = target.memo || "";
-
-            // 3. 현재 수정 중인 문서의 ID를 전역 변수에 저장하고 버튼 텍스트를 변경합니다.
-            editId = id;
-            document.querySelector('button[onclick="addSchedule()"]').innerText = "수정 완료하기";
-
-            // 4. 입력 화면이 있는 맨 위로 스크롤을 이동시킵니다.
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            alert("해당 일정을 찾을 수 없습니다.");
-        }
-    } catch (e) {
-        console.error("수정 데이터 로딩 에러: ", e);
-        alert("데이터를 불러오는 데 실패했습니다.");
-    }
-}
-
-// 폼 초기화 함수 수정 (작성자와 날짜 처리)
+// [10] 폼 초기화
 function resetForm() {
     const user = window.auth.currentUser;
     document.getElementById('location').value = '';
     document.getElementById('end-time').value = '18:00';
     document.getElementById('memo').value = '';
-    
-    // 날짜는 사용자가 달력에서 다시 고를 때까지 비워둡니다.
     document.getElementById('date').value = '';
-    
-    // 작성자 이름은 유지
-    if (user) {
-        document.getElementById('teammates').value = user.displayName;
-    }
+    if (user) document.getElementById('teammates').value = user.displayName;
 }
 
-window.onload = function() {
-    const list = document.getElementById('schedule-list');
-    list.innerHTML = '<p style="text-align:center; color:#888;">"리스트 보기" 버튼을 클릭하면 서버에서 일정을 가져옵니다.</p>';
+// [11] 구글 로그인/로그아웃 함수
+window.login = function() {
+    window.signInWithPopup(window.auth, window.provider).catch(console.error);
 };
 
-// 검색 기능 (로컬 필터링 방식)
-async function filterSchedules() {
-    const keyword = document.getElementById('search-input').value.toLowerCase();
-    const list = document.getElementById('schedule-list');
-    
-    // 1. 먼저 Firebase에서 전체 데이터를 가져옵니다.
-    const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-    const q = query(collection(window.db, "schedules"), orderBy("date", "desc"));
-    const querySnapshot = await getDocs(q);
-    
-    const allSchedules = [];
-    querySnapshot.forEach((doc) => {
-        allSchedules.push({ id: doc.id, ...doc.data() });
-    });
+window.logout = function() {
+    window.signOut(window.auth).catch(console.error);
+};
 
-    // 2. 검색어가 포함된 항목만 필터링합니다.
-    const filtered = allSchedules.filter(item => {
-        return (
-            (item.location && item.location.toLowerCase().includes(keyword)) || 
-            (item.teammates && item.teammates.toLowerCase().includes(keyword)) || 
-            (item.memo && item.memo.toLowerCase().includes(keyword)) ||
-            (item.date && item.date.includes(keyword))
-        );
-    });
-
-    // 3. 필터링된 결과만 화면에 다시 그립니다.
-    if (filtered.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#888;">검색 결과가 없습니다.</p>';
-    } else {
-        renderList(filtered);
-    }
-}
+// 전역 함수 노출 (HTML에서 접근 가능하도록)
+window.displaySchedules = displaySchedules;
+window.renderCalendar = renderCalendar;
