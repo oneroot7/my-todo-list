@@ -293,21 +293,35 @@ button[onclick="addSchedule()"] {
 .calendar-day {
     min-height: 100px; 
 }
-/* style.css */
+
+/* 실제 일요일 칸 내부 하단 표시 */
 .week-summary-badge {
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     color: #444;
-    background-color: #fff9c4; /* 연한 노란색 배경으로 강조 */
-    padding: 4px;
-    margin-top: auto; /* 칸의 맨 아래쪽으로 붙임 */
+    background-color: #fff9c4;
+    padding: 5px 0;
+    margin-top: auto;
     width: 100%;
-    border-radius: 0 0 8px 8px;
-    line-height: 1.4;
+    border-top: 1px dashed #fbc02d;
     text-align: center;
-    font-weight: bold;
 }
 
-.calendar-day {
-    min-height: 120px; /* 요약 정보까지 들어가므로 높이를 충분히 확보 */
-    justify-content: flex-start;
+/* 월말 일요일 위치 빈칸에 생성되는 네모 박스 */
+.week-summary-box {
+    background-color: #fff9c4; /* 색상 통일 */
+    border: 1px solid #fbc02d;
+    border-radius: 4px;
+    padding: 10px 2px;
+    margin: auto 5px 5px 5px;
+    font-size: 0.7rem;
+    color: #444;
+    text-align: center;
+    width: 90%;
+}
+
+.summary-title {
+    font-weight: bold;
+    color: #e65100;
+    font-size: 0.6rem;
+    margin-bottom: 4px;
 }
