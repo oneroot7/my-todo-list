@@ -141,21 +141,24 @@ function renderCalendar() {
     }
 }
 
-// 합계 표시 함수 (명칭을 '주간 합계'로 통일)
-function showWeeklySummary(targetDiv, count, minutes, isExtraBox = false) {
+// 합계 표시 함수 (일요일 칸 & 빈칸 박스 양식 통일)
+function showWeeklySummary(targetDiv, count, minutes) {
+    // 합산할 데이터가 없으면 표시하지 않음
     if (count === 0 && minutes === 0) return;
 
     const summaryDiv = document.createElement('div');
-    // 월말 빈칸에 그릴 때는 박스 스타일, 실제 일요일 칸은 배지 스타일
-    summaryDiv.className = isExtraBox ? 'week-summary-box' : 'week-summary-badge';
+    // 두 경우 모두 'week-summary-badge' 클래스를 사용해 양식 통일
+    summaryDiv.className = 'week-summary-badge';
     
     const totalH = Math.floor(minutes / 60);
     const totalM = minutes % 60;
     
     summaryDiv.innerHTML = `
         <div class="summary-title">주간 합계</div>
-        <div>횟수: ${count}회</div>
-        <div>초과: ${totalH}h ${totalM}m</div>
+        <div class="summary-content">
+            횟수: ${count}회<br>
+            초과: ${totalH}h ${totalM}m
+        </div>
     `;
     targetDiv.appendChild(summaryDiv);
 }
