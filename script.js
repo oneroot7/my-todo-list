@@ -42,7 +42,6 @@ function renderCalendar() {
     const month = currentViewDate.getMonth();
     title.innerText = `${year}년 ${month + 1}월`;
 
-    // 요일 헤더 (월~일 순서)
     const days = ['월', '화', '수', '목', '금', '토', '일'];
     days.forEach(day => {
         const div = document.createElement('div');
@@ -52,18 +51,19 @@ function renderCalendar() {
         grid.appendChild(div);
     });
 
-    // 월요일 시작 기준 공백 계산
     let firstDay = new Date(year, month, 1).getDay(); 
     let spaces = firstDay === 0 ? 6 : firstDay - 1;
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    for (let i = 0; i < spaces; i++) grid.appendChild(document.createElement('div'));
+    // 시작일 앞 빈칸 채우기
+    for (let i = 0; i < spaces; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
 
-    // 주간 합계 변수
+    // ⭐️ 주간 합산 변수를 루프 밖으로 뺍니다.
     let weekScheduleCount = 0;
     let weekExtraMinutes = 0;
 
-    // 날짜 채우기
     for (let i = 1; i <= lastDate; i++) {
         const dateDiv = document.createElement('div');
         dateDiv.className = 'calendar-day';
@@ -76,16 +76,15 @@ function renderCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         
+        // 데이터 누적
         weekScheduleCount += dayEvents.length;
 
         dayEvents.forEach(event => {
-            // 장소 표시
             const locBadge = document.createElement('div');
             locBadge.className = 'calendar-event-badge';
             locBadge.innerText = event.location;
             dateDiv.appendChild(locBadge);
 
-            // 종료 시간 및 초과 시간 계산
             if (event.endTime) {
                 const timeBadge = document.createElement('div');
                 timeBadge.className = 'calendar-time-badge';
@@ -93,38 +92,42 @@ function renderCalendar() {
                 dateDiv.appendChild(timeBadge);
 
                 const [h, m] = event.endTime.split(':').map(Number);
-                const diff = (h * 60 + m) - (18 * 60); // 18:00 기준
+                const diff = (h * 60 + m) - (18 * 60);
                 if (diff > 0) {
                     weekExtraMinutes += diff;
                     const extraBadge = document.createElement('div');
                     extraBadge.className = 'calendar-extra-badge';
-                    const diffH = Math.floor(diff/60);
-                    const diffM = diff%60;
-                    extraBadge.innerText = `(+${diffH > 0 ? diffH + 'h ' : ''}${diffM}m)`;
+                    extraBadge.innerText = `(+${Math.floor(diff/60)}h ${diff%60}m)`;
                     dateDiv.appendChild(extraBadge);
                 }
             }
         });
 
-        // 일요일 또는 월말일 때 주간 합계 표시
-        const currentDayOfWeek = new Date(year, month, i).getDay();
-        if (currentDayOfWeek === 0 || i === lastDate) {
+        // ⭐️ 핵심 수정: 현재 칸이 달력의 맨 오른쪽(일요일)인지 확인
+        // (빈칸 개수 + 현재 날짜)를 7로 나눈 나머지가 0이면 일요일입니다.
+        const isSundayColumn = (spaces + i) % 7 === 0;
+
+        if (isSundayColumn || i === lastDate) {
             const summaryDiv = document.createElement('div');
             summaryDiv.className = 'week-summary-badge';
             const totalH = Math.floor(weekExtraMinutes / 60);
             const totalM = weekExtraMinutes % 60;
-            summaryDiv.innerHTML = `<div>주간: ${weekScheduleCount}회<br>초과: ${totalH}h ${totalM}m</div>`;
-            dateDiv.appendChild(summaryDiv);
             
-            // 변수 초기화
+            // 데이터가 있을 때만 표시
+            if (weekScheduleCount > 0 || weekExtraMinutes > 0) {
+                summaryDiv.innerHTML = `<div>주간: ${weekScheduleCount}회<br>초과: ${totalH}h ${totalM}m</div>`;
+                dateDiv.appendChild(summaryDiv);
+            }
+            
+            // 일요일이 지나면 무조건 초기화 (다음 주 계산 시작)
             weekScheduleCount = 0;
             weekExtraMinutes = 0;
         }
 
+        const currentDayOfWeek = new Date(year, month, i).getDay();
         if (currentDayOfWeek === 0) dateDiv.style.color = '#ff4d4d';
         dateDiv.onclick = () => selectDate(dateStr);
         
-        // 오늘 날짜 강조
         const today = new Date();
         if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
             dateDiv.classList.add('today');
