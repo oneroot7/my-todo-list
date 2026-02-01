@@ -57,25 +57,25 @@ function renderCalendar() {
     let weekScheduleCount = 0;
     let weekExtraMinutes = 0;
 
-    // 데이터 합산 도우미 함수 (월~금만 합산)
+    // 데이터 합산 도우미 함수
     const accumulateData = (y, m, d) => {
         const dayOfWeek = new Date(y, m, d).getDay();
         const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            weekScheduleCount += dayEvents.length;
-            dayEvents.forEach(event => {
-                if (event.endTime) {
-                    const [h, min] = event.endTime.split(':').map(Number);
-                    const diff = (h * 60 + min) - (18 * 60);
-                    if (diff > 0) weekExtraMinutes += diff;
-                }
-            });
-        }
+        // ⭐️ 수정: 요일 제한(1~5)을 삭제하여 모든 날짜를 합산함
+        weekScheduleCount += dayEvents.length;
+        dayEvents.forEach(event => {
+            if (event.endTime) {
+                const [h, min] = event.endTime.split(':').map(Number);
+                const diff = (h * 60 + min) - (18 * 60);
+                if (diff > 0) weekExtraMinutes += diff;
+            }
+        });
+        
         return dayEvents;
     };
-
+    
     // 1. 이전 달 날짜 채우기
     const prevMonthLastDate = new Date(year, month, 0).getDate();
     for (let i = spaces - 1; i >= 0; i--) {
