@@ -51,20 +51,42 @@ function renderCalendar() {
         // 2. 해당 날짜 일정 찾기
         const dayEvents = allSchedules.filter(s => s.date === dateStr);
         dayEvents.forEach(event => {
-            // 장소 표시 (기존)
-            const locBadge = document.createElement('div');
-            locBadge.className = 'calendar-event-badge';
-            locBadge.innerText = event.location;
-            dateDiv.appendChild(locBadge);
-    
-            // ⭐️ 종료 시간 표시 (추가)
-            if (event.endTime) {
-                const timeBadge = document.createElement('div');
-                timeBadge.className = 'calendar-time-badge';
-                timeBadge.innerText = `~${event.endTime}`; // '~18:00' 형태로 표시
-                dateDiv.appendChild(timeBadge);
-            }
-        });
+// 1. 장소 표시
+    const locBadge = document.createElement('div');
+    locBadge.className = 'calendar-event-badge';
+    locBadge.innerText = event.location;
+    dateDiv.appendChild(locBadge);
+
+    // 2. 종료 시간 표시
+    if (event.endTime) {
+        const timeBadge = document.createElement('div');
+        timeBadge.className = 'calendar-time-badge';
+        timeBadge.innerText = `~${event.endTime}`;
+        dateDiv.appendChild(timeBadge);
+
+        // ⭐️ [추가] 18:00 이후 연장 시간 계산 로직
+        const [hours, minutes] = event.endTime.split(':').map(Number);
+        const endTotalMinutes = hours * 60 + minutes;
+        const defaultTotalMinutes = 18 * 60; // 18:00 기준
+
+        if (endTotalMinutes > defaultTotalMinutes) {
+            const diff = endTotalMinutes - defaultTotalMinutes;
+            const diffH = Math.floor(diff / 60);
+            const diffM = diff % 60;
+
+            const extraBadge = document.createElement('div');
+            extraBadge.className = 'calendar-extra-badge';
+            
+            // "1시간 20분" 또는 "20분" 형태로 표시
+            let timeText = "";
+            if (diffH > 0) timeText += `${diffH}시간 `;
+            if (diffM > 0) timeText += `${diffM}분`;
+            extraBadge.innerText = `(+${timeText.trim()})`;
+            
+            dateDiv.appendChild(extraBadge);
+        }
+    }
+});
 
 // 요일 확인 (현재 날짜의 요일이 일요일인지 확인)
         const currentDayOfWeek = new Date(year, month, i).getDay();
