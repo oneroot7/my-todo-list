@@ -123,8 +123,17 @@ function createDayDiv(y, m, d, isOther, events) {
     div.innerHTML = `<span class="date-number">${d}</span>`;
     events.forEach(event => {
         const loc = document.createElement('div');
-        loc.className = 'calendar-event-badge';
+        loc.className = 'calendar-event-badge clickable-loc'; // 클래스 추가
         loc.innerText = event.location;
+
+        // ⭐️ 클릭 시 네이버 지도로 이동하는 이벤트 추가
+        loc.onclick = (e) => {
+            e.stopPropagation(); // 부모 요소(날짜 칸)의 클릭 이벤트 전파 막기
+            const searchQuery = encodeURIComponent(event.location);
+            const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
+            window.open(naverMapUrl, '_blank'); // 새 창으로 열기
+        };
+        
         div.appendChild(loc);
 
         if (event.endTime) {
