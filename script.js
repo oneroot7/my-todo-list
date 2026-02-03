@@ -127,25 +127,20 @@ function createDayDiv(y, m, d, isOther, events) {
         loc.innerText = event.location;
 
         // ⭐️ 클릭 시 네이버 지도로 이동하는 이벤트 추가
-loc.onclick = (e) => {
-    e.stopPropagation(); 
-
-    // ⭐️ 정교한 주소 정제 정규식
-    // 1. 숫자-숫자 (예: 101-102)
-    // 2. 숫자+동/호/층 (예: 101동, 102호, 5층)
-    // 3. 공백 뒤에 시작되는 단독 숫자 (예: 아파트명 101)
-    const regex = /(\d+-\d+|\d+동|\d+호|\d+층|\s\d+$)/;
+        loc.onclick = (e) => {
+            e.stopPropagation(); 
     
-    let cleanLocation = event.location.split(regex)[0].trim();
-    
-    // 만약 잘라낸 결과가 너무 짧거나 빈 문자열이면 원본 사용
-    const finalQuery = cleanLocation.length > 1 ? cleanLocation : event.location;
-    
-    const searchQuery = encodeURIComponent(finalQuery);
-    const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
-    
-    window.open(naverMapUrl, '_blank');
-};
+            // ⭐️ 주소 정제 로직: 동, 호, 층 앞까지만 추출
+            // 예: "서울시 강남구 삼성동 101동 102호" -> "서울시 강남구 삼성동"
+            // 예: "반포자이아파트 102동" -> "반포자이아파트"
+            let cleanLocation = event.location.split(/(\d+동|\d+호|\d+층)/)[0].trim();
+            
+            // 정제된 주소가 너무 짧을 경우를 대비해 원본을 쓸지 정제본을 쓸지 판단
+            const searchQuery = encodeURIComponent(cleanLocation || event.location);
+            const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
+            
+            window.open(naverMapUrl, '_blank');
+        };        
         
         div.appendChild(loc);
 
