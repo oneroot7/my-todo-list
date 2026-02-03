@@ -236,3 +236,16 @@ body {
 
 .edit-btn { background: #e8f0fe; color: #1967d2; }
 .delete-btn { background: #fce8e6; color: #d93025; }
+
+.calendar-event-badge.clickable-loc {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.calendar-event-badge.clickable-loc:hover {
+    background-color: #1967d2 !important; /* 배경색 진하게 */
+    color: white !important; /* 글자색 반전 */
+    text-decoration: underline; /* 밑줄 효과 */
+    transform: translateY(-1px); /* 살짝 떠오르는 효과 */
+}
