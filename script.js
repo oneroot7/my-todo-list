@@ -127,12 +127,25 @@ function createDayDiv(y, m, d, isOther, events) {
         loc.innerText = event.location;
 
         // ⭐️ 클릭 시 네이버 지도로 이동하는 이벤트 추가
-        loc.onclick = (e) => {
-            e.stopPropagation(); // 부모 요소(날짜 칸)의 클릭 이벤트 전파 막기
-            const searchQuery = encodeURIComponent(event.location);
-            const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
-            window.open(naverMapUrl, '_blank'); // 새 창으로 열기
-        };
+loc.onclick = (e) => {
+    e.stopPropagation(); 
+
+    // ⭐️ 정교한 주소 정제 정규식
+    // 1. 숫자-숫자 (예: 101-102)
+    // 2. 숫자+동/호/층 (예: 101동, 102호, 5층)
+    // 3. 공백 뒤에 시작되는 단독 숫자 (예: 아파트명 101)
+    const regex = /(\d+-\d+|\d+동|\d+호|\d+층|\s\d+$)/;
+    
+    let cleanLocation = event.location.split(regex)[0].trim();
+    
+    // 만약 잘라낸 결과가 너무 짧거나 빈 문자열이면 원본 사용
+    const finalQuery = cleanLocation.length > 1 ? cleanLocation : event.location;
+    
+    const searchQuery = encodeURIComponent(finalQuery);
+    const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
+    
+    window.open(naverMapUrl, '_blank');
+};
         
         div.appendChild(loc);
 
