@@ -122,21 +122,33 @@ function createDayDiv(y, m, d, isOther, events) {
     
     div.innerHTML = `<span class="date-number">${d}</span>`;
     events.forEach(event => {
-        const loc = document.createElement('div');
-        loc.className = 'calendar-event-badge clickable-loc'; // 클래스 추가
-        loc.innerText = event.location;
-
-        // ⭐️ 클릭 시 네이버 지도로 이동하는 이벤트 추가
-        loc.onclick = (e) => {
-            e.stopPropagation(); 
+    const loc = document.createElement('div');
+        loc.className = 'calendar-event-badge clickable-loc';
+        
+        // ⭐️ 1. 텍스트 파싱 ([주석] 내용 찾기)
+        const noteMatch = event.location.match(/^\[(.*?)\]/);
+        let displayHtml = event.location;
+        let baseLocation = event.location;
     
-            // ⭐️ 주소 정제 로직: 동, 호, 층 앞까지만 추출
-            // 예: "서울시 강남구 삼성동 101동 102호" -> "서울시 강남구 삼성동"
-            // 예: "반포자이아파트 102동" -> "반포자이아파트"
-            let cleanLocation = event.location.split(/(\d+동|\d+호|\d+층)/)[0].trim();
+        if (noteMatch) {
+            const note = noteMatch[0]; // [주석] 부분
+            const rest = event.location.replace(note, "").trim(); // 나머지 주소
+            // 달력 표시용 HTML: 주석은 굵고 빨간색으로
+            displayHtml = `<span style="color: #d93025; font-weight: 800;">${note}</span> ${rest}`;
+            baseLocation = rest; // 지도 검색에 사용할 기본 주소
+        }
+        
+        loc.innerHTML = displayHtml; // 태그 적용을 위해 innerHTML 사용
+    
+        // ⭐️ 2. 클릭 시 네이버 지도 이동 로직
+        loc.onclick = (e) => {
+            e.stopPropagation();
+    
+            // [주석]이 제거된 baseLocation에서 '동/호/층'만 추가로 정제
+            let cleanLocation = baseLocation.split(/(\d+동|\d+호|\d+층)/)[0].trim();
             
-            // 정제된 주소가 너무 짧을 경우를 대비해 원본을 쓸지 정제본을 쓸지 판단
-            const searchQuery = encodeURIComponent(cleanLocation || event.location);
+            const finalQuery = cleanLocation.length > 1 ? cleanLocation : baseLocation;
+            const searchQuery = encodeURIComponent(finalQuery);
             const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
             
             window.open(naverMapUrl, '_blank');
