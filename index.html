@@ -56,14 +56,14 @@
 
         <hr style="margin: 40px 0; border: 0; border-top: 1px solid #eee;">
 
-        <div class="list-header">
-            <h2>📋 나의 일정 리스트</h2>
-            <div class="search-group">
-                <input type="text" id="search-input" placeholder="검색어 입력..." oninput="filterSchedules()">
-                <button class="view-btn" onclick="displaySchedules(true)">리스트 보기</button>
+        <div class="list-card">
+            <div class="list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0;">나의 일정 리스트</h3>
+                <input type="text" id="list-search" placeholder="장소, 메모 검색..." onkeyup="filterList()" 
+                       style="width: 200px; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem;">
             </div>
+            <ul id="schedule-list"></ul>
         </div>
-        <ul id="schedule-list"></ul>
     </div>
 
     <script type="module">
