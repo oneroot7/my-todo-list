@@ -253,16 +253,57 @@ window.deleteSchedule = async (id) => {
     await deleteDoc(doc(window.db, "schedules", id));
     displaySchedules();
 };
+// [9] 하단 리스트 렌더링 (필터링된 데이터만 표시하도록 수정)
 function renderList(data) {
     const list = document.getElementById('schedule-list');
+    if (!list) return;
     list.innerHTML = '';
+    
     data.forEach(item => {
+        // [주석] 강조 로직을 리스트에도 적용
+        const noteMatch = item.location.match(/^\[(.*?)\]/);
+        let displayLocation = item.location;
+        if (noteMatch) {
+            const note = noteMatch[0];
+            const rest = item.location.replace(note, "").trim();
+            displayLocation = `<b style="color: #d93025;">${note}</b> ${rest}`;
+        }
+
         const li = document.createElement('li');
         li.className = 'schedule-item';
-        li.innerHTML = `<strong>[${item.date}]</strong> ${item.location} <button onclick="editSchedule('${item.id}')">수정</button>`;
+        li.innerHTML = `
+            <div class="item-info">
+                <strong>[${item.date}]</strong> 📍 ${displayLocation} <br>
+                <span style="font-size: 0.85rem; color: #666;">
+                    ⏰ ${item.endTime} 종료 | 👥 ${item.teammates} <br>
+                    📝 ${item.memo || '메모 없음'}
+                </span>
+            </div>
+            <div class="item-btns">
+                <button class="edit-btn" onclick="editSchedule('${item.id}')">수정</button>
+                <button class="delete-btn" onclick="deleteSchedule('${item.id}')">삭제</button>
+            </div>
+        `;
         list.appendChild(li);
     });
 }
+
+// ⭐️ 검색 필터링 함수 추가
+window.filterList = function() {
+    const query = document.getElementById('list-search').value.toLowerCase();
+    
+    // allSchedules에서 장소, 팀원, 메모 중 검색어가 포함된 것만 필터링
+    const filteredData = allSchedules.filter(item => {
+        return (
+            item.location.toLowerCase().includes(query) ||
+            item.teammates.toLowerCase().includes(query) ||
+            item.memo.toLowerCase().includes(query) ||
+            item.date.includes(query)
+        );
+    });
+    
+    renderList(filteredData);
+};
 function resetForm() {
     ['location','memo','date'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('end-time').value = '18:00';
