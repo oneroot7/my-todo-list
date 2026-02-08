@@ -114,45 +114,48 @@ function renderCalendar() {
     }
 }
 
-// [4] 날짜 칸 생성 도우미
+// [4] 날짜 칸 생성 및 클릭 로직 수정 (지도 검색에서 [회차] 제외)
 function createDayDiv(y, m, d, isOther, events) {
     const div = document.createElement('div');
     div.className = 'calendar-day' + (isOther ? ' other-month' : '');
     const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     
     div.innerHTML = `<span class="date-number">${d}</span>`;
+    
     events.forEach(event => {
-    const loc = document.createElement('div');
+        const loc = document.createElement('div');
         loc.className = 'calendar-event-badge clickable-loc';
         
-        // ⭐️ 1. 텍스트 파싱 ([주석] 내용 찾기)
+        // ⭐️ 주석([주석]) 및 회차([?회]) 처리
         const noteMatch = event.location.match(/^\[(.*?)\]/);
+        const turnMatch = event.location.match(/\[\d+회\]$/);
+        
         let displayHtml = event.location;
         let baseLocation = event.location;
-    
-        if (noteMatch) {
-            const note = noteMatch[0]; // [주석] 부분
-            const rest = event.location.replace(note, "").trim(); // 나머지 주소
-            // 달력 표시용 HTML: 주석은 굵고 빨간색으로
-            displayHtml = `<span style="color: #d93025; font-weight: 800;">${note}</span> ${rest}`;
-            baseLocation = rest; // 지도 검색에 사용할 기본 주소
+
+        // 회차 부분 색상 및 굵기 다르게 표시 (선택 사항)
+        if (turnMatch) {
+            displayHtml = displayHtml.replace(turnMatch[0], `<span style="color: #1a73e8; font-weight: bold;">${turnMatch[0]}</span>`);
+            baseLocation = baseLocation.replace(turnMatch[0], "").trim(); // 지도 검색용에서 제거
         }
         
-        loc.innerHTML = displayHtml; // 태그 적용을 위해 innerHTML 사용
-    
-        // ⭐️ 2. 클릭 시 네이버 지도 이동 로직
+        // 맨 앞 주석 빨간색 처리
+        if (noteMatch) {
+            const note = noteMatch[0];
+            const rest = displayHtml.replace(note, "").trim();
+            displayHtml = `<span style="color: #d93025; font-weight: 800;">${note}</span> ${rest}`;
+            baseLocation = baseLocation.replace(note, "").trim(); // 지도 검색용에서 제거
+        }
+        
+        loc.innerHTML = displayHtml;
+
         loc.onclick = (e) => {
             e.stopPropagation();
-    
-            // [주석]이 제거된 baseLocation에서 '동/호/층'만 추가로 정제
+            // 동/호/층 제거 로직 적용
             let cleanLocation = baseLocation.split(/(\d+동|\d+호|\d+층)/)[0].trim();
-            
             const finalQuery = cleanLocation.length > 1 ? cleanLocation : baseLocation;
-            const searchQuery = encodeURIComponent(finalQuery);
-            const naverMapUrl = `https://map.naver.com/v5/search/${searchQuery}`;
-            
-            window.open(naverMapUrl, '_blank');
-        };        
+            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(finalQuery)}`, '_blank');
+        };      
         
         div.appendChild(loc);
 
