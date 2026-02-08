@@ -229,8 +229,8 @@ async function getNextTurn(targetDateStr) {
             uniqueDates.add(data.date);
         });
 
-        // 기준일(2025-02-05)보다 이전 날짜들은 제외하고 이후 날짜들만 카운트
-        const baseDate = "2025-02-05";
+        // 기준일(2026-02-05)보다 이전 날짜들은 제외하고 이후 날짜들만 카운트
+        const baseDate = "2026-02-05";
         const baseTurn = 31;
 
         // 기준일 이후이면서 targetDateStr보다 이전인 고유 날짜들의 개수
