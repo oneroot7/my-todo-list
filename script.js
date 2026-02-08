@@ -205,22 +205,72 @@ function selectDate(dateStr) {
     document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
 }
 
-// [7] 데이터 저장/수정
+// [회차 계산 도우미 함수 - DB 연동 방식]
+async function getNextTurn(targetDateStr) {
+    const user = window.auth.currentUser;
+    if (!user) return 31;
+
+    try {
+        const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        
+        // 사용자의 모든 일정을 가져옴
+        const q = query(collection(window.db, "schedules"), where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
+        // 등록된 모든 일정의 날짜 리스트 생성 (중복 제거)
+        let uniqueDates = new Set();
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            // 현재 수정 중인 일정의 기존 날짜는 계산에서 제외 (수정 시 회차 꼬임 방지)
+            if (editId && doc.id === editId) return;
+            uniqueDates.add(data.date);
+        });
+
+        // 기준일(2025-02-05)보다 이전 날짜들은 제외하고 이후 날짜들만 카운트
+        const baseDate = "2025-02-05";
+        const baseTurn = 31;
+
+        // 기준일 이후이면서 targetDateStr보다 이전인 고유 날짜들의 개수
+        const datesBeforeTarget = Array.from(uniqueDates).filter(date => 
+            date >= baseDate && date < targetDateStr
+        );
+
+        // 결과: 기준회차(31) + (기준일~목표일 사이의 실제 일정 날짜 수)
+        return baseTurn + datesBeforeTarget.length;
+    } catch (e) {
+        console.error("회차 계산 중 오류:", e);
+        return 31;
+    }
+}
+
+// [7] 데이터 저장/수정 로직 수정 (async/await 적용)
 window.addSchedule = async function() {
     const user = window.auth.currentUser;
     if (!user) return alert("로그인이 필요합니다.");
 
+    const dateInput = document.getElementById('date').value;
+    let locationInput = document.getElementById('location').value;
+    const endTime = document.getElementById('end-time').value;
+    const teammates = document.getElementById('teammates').value;
+    const memo = document.getElementById('memo').value;
+
+    if (!dateInput || !locationInput) return alert("필수 항목을 입력하세요.");
+
+    // ⭐️ DB를 조회하여 실제 일정 날짜 기반으로 회차 계산
+    const turn = await getNextTurn(dateInput);
+    const turnTag = `[${turn}회]`;
+    
+    // 기존에 붙어있던 회차 태그 제거 후 새로 부여
+    locationInput = locationInput.replace(/\[\d+회\]/g, "").trim(); 
+    locationInput = `${locationInput} ${turnTag}`;
+
     const data = {
-        date: document.getElementById('date').value,
-        location: document.getElementById('location').value,
-        endTime: document.getElementById('end-time').value,
-        teammates: document.getElementById('teammates').value,
-        memo: document.getElementById('memo').value,
+        date: dateInput,
+        location: locationInput,
+        endTime, teammates, memo,
         userId: user.uid,
         timestamp: Date.now()
     };
-
-    if (!data.date || !data.location) return alert("필수 항목을 입력하세요.");
 
     try {
         const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -232,10 +282,9 @@ window.addSchedule = async function() {
             await addDoc(collection(window.db, "schedules"), data);
         }
         resetForm();
-        displaySchedules();
+        displaySchedules(); // 리스트와 달력 갱신
     } catch (e) { console.error(e); }
 };
-
 // [기타 보조 함수들]
 window.changeMonth = (diff) => { currentViewDate.setMonth(currentViewDate.getMonth() + diff); renderCalendar(); };
 window.editSchedule = (id) => {
