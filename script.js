@@ -301,10 +301,18 @@ window.deleteSchedule = async (id) => {
 };
 
 function resetForm() {
-    ['date', 'location', 'author', 'teammates', 'memo'].forEach(id => {
+    // 모든 필드 비우기
+    ['date', 'location', 'teammates', 'memo'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = '';
     });
+
+    // ⭐️ 작성자 칸에만 로그인한 유저 이름 넣기
+    const user = window.auth.currentUser;
+    if (user && document.getElementById('author')) {
+        document.getElementById('author').value = user.displayName || '작성자';
+    }
+    
     document.getElementById('end-time').value = '18:00';
 }
 
