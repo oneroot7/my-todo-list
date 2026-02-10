@@ -36,24 +36,26 @@
 
         <h2 id="form-title">📅 일정 등록</h2>
         <div class="input-form">
-            <label>날짜</label>
-            <input type="date" id="date" readonly style="background-color: #f0f0f0; cursor: not-allowed;" placeholder="달력에서 날짜를 선택하세요">
-            
-            <label>장소</label>
-            <input type="text" id="location" placeholder="예: 미팅룸 A">
-            
-            <label>종료 시간</label>
+            <label for="date">날짜</label>
+            <input type="date" id="date">
+        
+            <label for="location">장소</label>
+            <input type="text" id="location" placeholder="장소 입력 (예: [주석] 래미안아파트)">
+        
+            <label for="end-time">종료 시간</label>
             <input type="time" id="end-time" value="18:00">
-            
-            <label>작성자</label>
-            <input type="text" id="teammates" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
-            
-            <label>메모</label>
-            <textarea id="memo" placeholder="상세 내용을 입력하세요"></textarea>
-            
-            <button onclick="addSchedule()" id="submit-btn">일정 추가하기</button>
+        
+            <label for="author">작성자</label>
+            <input type="text" id="author" placeholder="작성자 이름">
+        
+            <label for="teammates">팀원</label>
+            <input type="text" id="teammates" placeholder="함께한 팀원들">
+        
+            <label for="memo">메모</label>
+            <textarea id="memo" placeholder="상세 내용 메모"></textarea>
+        
+            <button id="submit-btn" onclick="addSchedule()">일정 추가하기</button>
         </div>
-
         <hr style="margin: 40px 0; border: 0; border-top: 1px solid #eee;">
 
         <div class="list-card">
