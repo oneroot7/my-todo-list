@@ -368,10 +368,22 @@ window.filterList = function() {
 };
 // [폼 초기화]
 function resetForm() {
-    ['date', 'location', 'author', 'teammates', 'memo'].forEach(id => {
-        document.getElementById(id).value = '';
+    // 필드 ID들을 정확하게 매칭
+    const fields = ['date', 'location', 'author', 'teammates', 'memo'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
     });
+    
     document.getElementById('end-time').value = '18:00';
+
+    // 로그인한 사용자의 이름을 '작성자' 칸에 자동으로 넣기
+    const user = window.auth.currentUser;
+    if (user) {
+        // ⭐️ teammates가 아닌 author에 넣어야 합니다.
+        document.getElementById('author').value = user.displayName || '작성자';
+        document.getElementById('teammates').value = ''; // 팀원 칸은 비워둡니다.
+    }
 }
 window.login = () => window.signInWithPopup(window.auth, window.provider);
 window.logout = () => window.signOut(window.auth);
