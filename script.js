@@ -253,7 +253,7 @@ function renderList(data) {
             <div class="item-info">
                 <strong>[${item.date}]</strong> 📍 ${displayLoc} <br>
                 <span style="font-size: 0.85rem; color: #666;">
-                    ⏰ ${item.endTime} 종료 | 👥 ${item.teammates || '없음'} | 👤 ${item.author || ''}<br>
+                    ⏰ ${item.endTime} 종료 | 👥 ${item.teammates || '없음'} <br>
                     📝 ${item.memo || '메모 없음'}
                 </span>
             </div>
