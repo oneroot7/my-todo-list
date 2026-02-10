@@ -224,9 +224,13 @@ body {
     margin-bottom: 8px;
 }
 
-.item-info {
-    flex: 1;
-    line-height: 1.5;
+/* 리스트의 상세 정보 스타일 */
+.item-info span {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.4;
 }
 
 .item-btns {
