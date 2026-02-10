@@ -145,10 +145,33 @@ function createDayDiv(y, m, d, isOther, events) {
         div.appendChild(loc);
 
         if (event.endTime) {
+        // 1. 종료 시간 배지 생성 (~18:30 형태)
             const time = document.createElement('div');
             time.className = 'calendar-time-badge';
             time.innerText = `~${event.endTime}`;
             div.appendChild(time);
+        
+            // 2. 연장 시간(오바타임) 계산 및 배지 생성
+            const [h, min] = event.endTime.split(':').map(Number);
+            const totalMinutes = h * 60 + min;
+            const standardMinutes = 18 * 60; // 18:00 기준 (1080분)
+            
+            const diff = totalMinutes - standardMinutes;
+            
+            if (diff > 0) {
+                const extra = document.createElement('div');
+                extra.className = 'calendar-extra-badge'; // CSS에 이 클래스가 있어야 합니다
+                
+                const extraH = Math.floor(diff / 60);
+                const extraM = diff % 60;
+                
+                // 1시간 이상이면 h와 m 둘 다 표시, 아니면 m만 표시
+                let extraText = extraH > 0 ? `(+${extraH}h ${extraM}m)` : `(+${extraM}m)`;
+                if (extraM === 0) extraText = `(+${extraH}h)`; // 정각에 끝난 경우
+                
+                extra.innerText = extraText;
+                div.appendChild(extra);
+            }
         }
     });
 
