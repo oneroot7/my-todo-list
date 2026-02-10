@@ -133,21 +133,17 @@ body {
     white-space: normal; /* 주석이 길 경우 자연스럽게 줄바꿈 */
 }
 
-.calendar-extra-badge {
-    background-color: #e8f0fe; /* 연한 파란색 배경 */
-    color: #ff4d4d;            /* 빨간색 */
+.calendar-time-badge {
     font-size: 0.7rem;
-    font-weight: bold;
-    padding: 2px 4px;
-    border-radius: 4px;
-    margin-top: 2px;
-    display: inline-block;
+    color: #70757a;
+    margin-top: 1px;
 }
 
-.calendar-time-badge {
-    font-size: 0.75rem;
-    color: #666;
-    margin-top: 2px;
+.calendar-extra-badge {
+    font-size: 0.65rem;
+    color: #d93025; /* 초과 시간 빨간색 강조 */
+    font-weight: bold;
+    margin-bottom: 4px;
 }
 
 /* ⭐️ 주간 합계 배지 (일요일 하단) */
