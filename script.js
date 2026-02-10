@@ -1,345 +1,123 @@
-// [1] 전역 변수 설정
-let currentViewDate = new Date();
+import { db, auth } from './firebase-config.js';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 let allSchedules = [];
 let editId = null;
 
-// [2] 일정 불러오기 및 업데이트
-async function displaySchedules() {
-    const user = window.auth.currentUser;
-    if (!user) return;
-
-    try {
-        const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        
-        const q = query(
-            collection(window.db, "schedules"), 
-            where("userId", "==", user.uid), 
-            orderBy("date", "desc")
-        );
-        
-        const querySnapshot = await getDocs(q);
-        allSchedules = [];
-        querySnapshot.forEach((doc) => {
-            allSchedules.push({ id: doc.id, ...doc.data() });
-        });
-
-        renderList(allSchedules);
-        renderCalendar(); 
-    } catch (e) {
-        console.error("데이터 로딩 에러: ", e);
-    }
-}
-
-// [3] 달력 생성 핵심 함수
-function renderCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    const title = document.getElementById('calendar-title');
-    if (!grid || !title) return;
-    
-    grid.innerHTML = '';
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    title.innerText = `${year}년 ${month + 1}월`;
-
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
-    days.forEach(day => {
-        const div = document.createElement('div');
-        div.className = 'day-label';
-        if (day === '일') div.style.color = '#ff4d4d';
-        div.innerText = day;
-        grid.appendChild(div);
-    });
-
-    const firstDay = new Date(year, month, 1).getDay(); 
-    const spaces = firstDay === 0 ? 6 : firstDay - 1;
-    const lastDate = new Date(year, month + 1, 0).getDate();
-
-    let weekScheduleCount = 0;
-    let weekExtraMinutes = 0;
-
-    // 데이터 합산 도우미 함수
-    const accumulateData = (y, m, d) => {
-        const dayOfWeek = new Date(y, m, d).getDay();
-        const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayEvents = allSchedules.filter(s => s.date === dateStr);
-        
-        // ⭐️ 수정: 요일 제한(1~5)을 삭제하여 모든 날짜를 합산함
-        weekScheduleCount += dayEvents.length;
-        dayEvents.forEach(event => {
-            if (event.endTime) {
-                const [h, min] = event.endTime.split(':').map(Number);
-                const diff = (h * 60 + min) - (18 * 60);
-                if (diff > 0) weekExtraMinutes += diff;
-            }
-        });
-        
-        return dayEvents;
-    };
-    
-    // 1. 이전 달 날짜 채우기
-    const prevMonthLastDate = new Date(year, month, 0).getDate();
-    for (let i = spaces - 1; i >= 0; i--) {
-        const d = prevMonthLastDate - i;
-        const prevY = month === 0 ? year - 1 : year;
-        const prevM = month === 0 ? 11 : month - 1;
-        const events = accumulateData(prevY, prevM, d);
-        grid.appendChild(createDayDiv(prevY, prevM, d, true, events));
-    }
-
-    // 2. 이번 달 날짜 채우기
-    for (let i = 1; i <= lastDate; i++) {
-        const events = accumulateData(year, month, i);
-        const dateDiv = createDayDiv(year, month, i, false, events);
-        grid.appendChild(dateDiv);
-
-        const isSundayColumn = (spaces + i) % 7 === 0;
-        if (isSundayColumn) {
-            showWeeklySummary(dateDiv, weekScheduleCount, weekExtraMinutes);
-            weekScheduleCount = 0; weekExtraMinutes = 0;
-        } 
-        // 마지막 날인데 일요일이 아니면 다음 달 날짜로 주간 합계 마무리
-        else if (i === lastDate) {
-            let nextDay = 1;
-            let remaining = 7 - ((spaces + i) % 7);
-            for (let s = 0; s < remaining; s++) {
-                const nextY = month === 11 ? year + 1 : year;
-                const nextM = month === 11 ? 0 : month + 1;
-                const nextEvents = accumulateData(nextY, nextM, nextDay);
-                const nextDiv = createDayDiv(nextY, nextM, nextDay, true, nextEvents);
-                if (s === remaining - 1) showWeeklySummary(nextDiv, weekScheduleCount, weekExtraMinutes);
-                grid.appendChild(nextDiv);
-                nextDay++;
-            }
-        }
-    }
-}
-
-// [4] 날짜 칸 생성 및 클릭 로직 수정 (지도 검색에서 [회차] 제외)
-function createDayDiv(y, m, d, isOther, events) {
-    const div = document.createElement('div');
-    div.className = 'calendar-day' + (isOther ? ' other-month' : '');
-    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    
-    div.innerHTML = `<span class="date-number">${d}</span>`;
-    
-    events.forEach(event => {
-        const loc = document.createElement('div');
-        loc.className = 'calendar-event-badge clickable-loc';
-        
-        // ⭐️ 주석([주석]) 및 회차([?회]) 처리
-        const noteMatch = event.location.match(/^\[(.*?)\]/);
-        const turnMatch = event.location.match(/\[\d+회\]$/);
-        
-        let displayHtml = event.location;
-        let baseLocation = event.location;
-
-        // 회차 부분 색상 및 굵기 다르게 표시 (선택 사항)
-        if (turnMatch) {
-            displayHtml = displayHtml.replace(turnMatch[0], `<span style="color: #1a73e8; font-weight: bold;">${turnMatch[0]}</span>`);
-            baseLocation = baseLocation.replace(turnMatch[0], "").trim(); // 지도 검색용에서 제거
-        }
-        
-        // 맨 앞 주석 빨간색 처리
-        if (noteMatch) {
-            const note = noteMatch[0];
-            const rest = displayHtml.replace(note, "").trim();
-            displayHtml = `<span style="color: #d93025; font-weight: 800;">${note}</span> ${rest}`;
-            baseLocation = baseLocation.replace(note, "").trim(); // 지도 검색용에서 제거
-        }
-        
-        loc.innerHTML = displayHtml;
-
-        loc.onclick = (e) => {
-            e.stopPropagation();
-            // 동/호/층 제거 로직 적용
-            let cleanLocation = baseLocation.split(/(\d+동|\d+호|\d+층)/)[0].trim();
-            const finalQuery = cleanLocation.length > 1 ? cleanLocation : baseLocation;
-            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(finalQuery)}`, '_blank');
-        };      
-        
-        div.appendChild(loc);
-
-        if (event.endTime) {
-            const time = document.createElement('div');
-            time.className = 'calendar-time-badge';
-            time.innerText = `~${event.endTime}`;
-            div.appendChild(time);
-
-            const [h, min] = event.endTime.split(':').map(Number);
-            const diff = (h * 60 + min) - (1080); // 18:00 = 1080분
-            if (diff > 0) {
-                const extra = document.createElement('div');
-                extra.className = 'calendar-extra-badge';
-                extra.innerText = `(+${Math.floor(diff/60)}h ${diff%60}m)`;
-                div.appendChild(extra);
-            }
-        }
-    });
-
-    if (new Date(y, m, d).getDay() === 0) div.style.color = '#ff4d4d';
-    div.onclick = () => selectDate(dateStr);
-    
-    const today = new Date();
-    if (d === today.getDate() && m === today.getMonth() && y === today.getFullYear()) div.classList.add('today');
-    
-    return div;
-}
-
-// [5] 주간 합계 표시
-function showWeeklySummary(target, count, mins) {
-    if (count === 0 && mins === 0) return;
-    const summary = document.createElement('div');
-    summary.className = 'week-summary-badge';
-    summary.innerHTML = `<div class="summary-title">주간 합계</div><div>${count}회 | +${Math.floor(mins/60)}h ${mins%60}m</div>`;
-    target.appendChild(summary);
-}
-
-// [6] 날짜 선택 및 폼 제어
-function selectDate(dateStr) {
-    const item = allSchedules.find(s => s.date === dateStr);
-    if (item) {
-        editSchedule(item.id);
-    } else {
-        resetForm();
-        document.getElementById('date').value = dateStr;
-        editId = null;
-        document.getElementById('submit-btn').innerText = "일정 추가하기";
-    }
-    document.getElementById('form-title').scrollIntoView({ behavior: 'smooth' });
-}
-
-// [회차 계산 도우미 함수 - DB 연동 방식]
-async function getNextTurn(targetDateStr) {
-    const user = window.auth.currentUser;
+// [1] 회차 계산: 실제 일정이 존재하는 '날짜'의 개수만 카운트 (2026년 기준)
+async function getTurnByOrder(targetDateStr) {
+    const user = auth.currentUser;
     if (!user) return 31;
 
     try {
-        const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-        
-        // 사용자의 모든 일정을 가져옴
-        const q = query(collection(window.db, "schedules"), where("userId", "==", user.uid));
+        const q = query(collection(db, "schedules"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
         
-        // 등록된 모든 일정의 날짜 리스트 생성 (중복 제거)
         let uniqueDates = new Set();
         querySnapshot.forEach(doc => {
             const data = doc.data();
-            // 현재 수정 중인 일정의 기존 날짜는 계산에서 제외 (수정 시 회차 꼬임 방지)
+            // 수정 중인 경우 현재 데이터의 날짜는 계산에서 제외하여 중복 방지
             if (editId && doc.id === editId) return;
             uniqueDates.add(data.date);
         });
 
-        // 기준일(2026-02-05)보다 이전 날짜들은 제외하고 이후 날짜들만 카운트
-        const baseDate = "2026-02-05";
-        const baseTurn = 31;
+        const baseDate = "2026-02-05"; // 기준일
+        const baseTurn = 31;          // 기준 회차
 
-        // 기준일 이후이면서 targetDateStr보다 이전인 고유 날짜들의 개수
-        const datesBeforeTarget = Array.from(uniqueDates).filter(date => 
-            date >= baseDate && date < targetDateStr
-        );
+        // 기준일 이후 ~ 선택한 날짜 이전까지 실제 일정이 있는 날짜 수
+        const actualDatesBefore = Array.from(uniqueDates).filter(d => d >= baseDate && d < targetDateStr);
 
-        // 결과: 기준회차(31) + (기준일~목표일 사이의 실제 일정 날짜 수)
-        return baseTurn + datesBeforeTarget.length;
+        return baseTurn + actualDatesBefore.length;
     } catch (e) {
-        console.error("회차 계산 중 오류:", e);
+        console.error("회차 계산 오류:", e);
         return 31;
     }
 }
 
-// [7] 데이터 저장/수정 로직 업데이트
+// [2] 일정 저장 및 수정
 window.addSchedule = async function() {
-    const user = window.auth.currentUser;
+    const user = auth.currentUser;
     if (!user) return alert("로그인이 필요합니다.");
 
-    const dateInput = document.getElementById('date').value;
-    let locationInput = document.getElementById('location').value;
+    const date = document.getElementById('date').value;
+    let location = document.getElementById('location').value;
     const endTime = document.getElementById('end-time').value;
-    const author = document.getElementById('author').value; // 작성자
-    const teammates = document.getElementById('teammates').value; // ⭐️ 팀원 추가
+    const author = document.getElementById('author').value;
+    const teammates = document.getElementById('teammates').value;
     const memo = document.getElementById('memo').value;
 
-    if (!dateInput || !locationInput) return alert("필수 항목을 입력하세요.");
+    if (!date || !location) return alert("날짜와 장소는 필수입니다.");
 
-    // 회차 계산 (실제 일정 날짜 카운트 방식)
-    const turn = await getTurnByOrder(dateInput);
+    // 회차 자동 부여
+    const turn = await getTurnByOrder(date);
     const turnTag = `[${turn}회]`;
-    locationInput = locationInput.replace(/\[\d+회\]/g, "").trim(); 
-    locationInput = `${locationInput} ${turnTag}`;
+    location = location.replace(/\[\d+회\]/g, "").trim(); 
+    location = `${location} ${turnTag}`;
 
-    const data = {
-        date: dateInput,
-        location: locationInput,
-        endTime,
-        author,      // 작성자 저장
-        teammates,   // ⭐️ 팀원 저장
-        memo,
+    const scheduleData = {
+        date, location, endTime, author, teammates, memo,
         userId: user.uid,
         timestamp: Date.now()
     };
 
     try {
-        const { collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
         if (editId) {
-            await updateDoc(doc(window.db, "schedules", editId), data);
+            await updateDoc(doc(db, "schedules", editId), scheduleData);
             editId = null;
             document.getElementById('submit-btn').innerText = "일정 추가하기";
         } else {
-            await addDoc(collection(window.db, "schedules"), data);
+            await addDoc(collection(db, "schedules"), scheduleData);
         }
         resetForm();
         displaySchedules();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error("저장 오류:", e);
+    }
 };
 
-// [기타 보조 함수들]
-window.changeMonth = (diff) => { currentViewDate.setMonth(currentViewDate.getMonth() + diff); renderCalendar(); };
-// [수정 버튼 클릭 시 데이터 불러오기]
-window.editSchedule = (id) => {
-    const item = allSchedules.find(s => s.id === id);
-    if (!item) return;
-    
-    document.getElementById('date').value = item.date;
-    document.getElementById('location').value = item.location;
-    document.getElementById('end-time').value = item.endTime;
-    document.getElementById('author').value = item.author || '';
-    document.getElementById('teammates').value = item.teammates || ''; // ⭐️ 팀원 불러오기
-    document.getElementById('memo').value = item.memo || '';
-    
-    editId = id;
-    document.getElementById('submit-btn').innerText = "수정 완료하기";
-    document.getElementById('date').scrollIntoView({ behavior: 'smooth' });
+// [3] 일정 불러오기 및 달력/리스트 표시
+window.displaySchedules = async function() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(collection(db, "schedules"), where("userId", "==", user.uid));
+    const querySnapshot = await getDocs(q);
+    allSchedules = [];
+    querySnapshot.forEach(doc => {
+        allSchedules.push({ id: doc.id, ...doc.data() });
+    });
+
+    // 날짜순 정렬
+    allSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    renderCalendar();
+    renderList(allSchedules);
 };
-window.deleteSchedule = async (id) => {
-    if (!confirm("삭제할까요?")) return;
-    const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-    await deleteDoc(doc(window.db, "schedules", id));
-    displaySchedules();
+
+// [4] 하단 리스트 렌더링 및 검색 기능
+window.filterList = function() {
+    const queryStr = document.getElementById('list-search').value.toLowerCase();
+    const filtered = allSchedules.filter(item => 
+        item.location.toLowerCase().includes(queryStr) ||
+        item.teammates.toLowerCase().includes(queryStr) ||
+        item.memo.toLowerCase().includes(queryStr)
+    );
+    renderList(filtered);
 };
-// [9] 하단 리스트 렌더링 (필터링된 데이터만 표시하도록 수정)
+
 function renderList(data) {
     const list = document.getElementById('schedule-list');
     if (!list) return;
     list.innerHTML = '';
-    
-    data.forEach(item => {
-        // [주석] 강조 로직을 리스트에도 적용
-        const noteMatch = item.location.match(/^\[(.*?)\]/);
-        let displayLocation = item.location;
-        if (noteMatch) {
-            const note = noteMatch[0];
-            const rest = item.location.replace(note, "").trim();
-            displayLocation = `<b style="color: #d93025;">${note}</b> ${rest}`;
-        }
 
+    data.forEach(item => {
         const li = document.createElement('li');
         li.className = 'schedule-item';
         li.innerHTML = `
             <div class="item-info">
-                <strong>[${item.date}]</strong> 📍 ${displayLocation} <br>
-                <span style="font-size: 0.85rem; color: #666;">
-                    ⏰ ${item.endTime} 종료 | 👥 ${item.teammates} <br>
-                    📝 ${item.memo || '메모 없음'}
-                </span>
+                <strong>${item.date}</strong> | ${item.location} <br>
+                <span>⏰ ${item.endTime} 종료 | 👤 작성: ${item.author} | 👥 팀원: ${item.teammates || '없음'}</span>
+                <p style="margin:5px 0 0 0; font-size:0.85rem; color:#666;">📝 ${item.memo}</p>
             </div>
             <div class="item-btns">
                 <button class="edit-btn" onclick="editSchedule('${item.id}')">수정</button>
@@ -350,41 +128,86 @@ function renderList(data) {
     });
 }
 
-// ⭐️ 검색 필터링 함수 추가
-window.filterList = function() {
-    const query = document.getElementById('list-search').value.toLowerCase();
-    
-    // allSchedules에서 장소, 팀원, 메모 중 검색어가 포함된 것만 필터링
-    const filteredData = allSchedules.filter(item => {
-        return (
-            item.location.toLowerCase().includes(query) ||
-            item.teammates.toLowerCase().includes(query) ||
-            item.memo.toLowerCase().includes(query) ||
-            item.date.includes(query)
-        );
-    });
-    
-    renderList(filteredData);
-};
-// [폼 초기화]
-function resetForm() {
-    // 필드 ID들을 정확하게 매칭
-    const fields = ['date', 'location', 'author', 'teammates', 'memo'];
-    fields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    
-    document.getElementById('end-time').value = '18:00';
+// [5] 달력 생성 (주석/회차/지도연동 핵심)
+function renderCalendar() {
+    const container = document.getElementById('calendar-container');
+    if (!container) return;
+    container.innerHTML = ''; // 단순화를 위해 내부 로직 요약 (실제 달력 라이브러리/로직에 맞춰 배치)
 
-    // 로그인한 사용자의 이름을 '작성자' 칸에 자동으로 넣기
-    const user = window.auth.currentUser;
-    if (user) {
-        // ⭐️ teammates가 아닌 author에 넣어야 합니다.
-        document.getElementById('author').value = user.displayName || '작성자';
-        document.getElementById('teammates').value = ''; // 팀원 칸은 비워둡니다.
+    // ... (기존 달력 날짜 생성 로직 수행 후 배지 삽입 시 아래 코드 사용) ...
+}
+
+// 배지 생성 도우미 (달력 렌더링 시 호출)
+function createBadge(event) {
+    const loc = document.createElement('div');
+    loc.className = 'calendar-event-badge clickable-loc';
+
+    // 텍스트 파싱
+    const noteMatch = event.location.match(/^\[(.*?)\]/); // 앞 주석
+    const turnMatch = event.location.match(/\[\d+회\]$/); // 뒤 회차
+    
+    let displayHtml = event.location;
+    let mapQuery = event.location;
+
+    // 회차 파란색 처리 및 검색어 제외
+    if (turnMatch) {
+        displayHtml = displayHtml.replace(turnMatch[0], `<span style="color: #1a73e8; font-weight: bold;">${turnMatch[0]}</span>`);
+        mapQuery = mapQuery.replace(turnMatch[0], "").trim();
+    }
+    // 주석 빨간색 처리 및 검색어 제외
+    if (noteMatch) {
+        displayHtml = displayHtml.replace(noteMatch[0], `<span style="color: #d93025; font-weight: 800;">${noteMatch[0]}</span>`);
+        mapQuery = mapQuery.replace(noteMatch[0], "").trim();
+    }
+
+    loc.innerHTML = displayHtml;
+
+    // 네이버 지도 클릭 이벤트
+    loc.onclick = (e) => {
+        e.stopPropagation();
+        // 동/호/층 제거
+        let cleanLoc = mapQuery.split(/(\d+동|\d+호|\d+층)/)[0].trim();
+        window.open(`https://map.naver.com/v5/search/${encodeURIComponent(cleanLoc)}`, '_blank');
+    };
+    return loc;
+}
+
+// [6] 수정/삭제/초기화
+window.editSchedule = (id) => {
+    const item = allSchedules.find(s => s.id === id);
+    if (!item) return;
+    document.getElementById('date').value = item.date;
+    document.getElementById('location').value = item.location;
+    document.getElementById('end-time').value = item.endTime;
+    document.getElementById('author').value = item.author || '';
+    document.getElementById('teammates').value = item.teammates || '';
+    document.getElementById('memo').value = item.memo || '';
+    editId = id;
+    document.getElementById('submit-btn').innerText = "수정 완료하기";
+    window.scrollTo(0, 0);
+};
+
+window.deleteSchedule = async (id) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    await deleteDoc(doc(db, "schedules", id));
+    displaySchedules();
+};
+
+function resetForm() {
+    document.getElementById('date').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('teammates').value = '';
+    document.getElementById('memo').value = '';
+    document.getElementById('end-time').value = '18:00';
+    if (auth.currentUser) {
+        document.getElementById('author').value = auth.currentUser.displayName || '작성자';
     }
 }
-window.login = () => window.signInWithPopup(window.auth, window.provider);
-window.logout = () => window.signOut(window.auth);
-window.displaySchedules = displaySchedules;
+
+// 인증 상태 감시
+auth.onAuthStateChanged(user => {
+    if (user) {
+        resetForm();
+        displaySchedules();
+    }
+});
