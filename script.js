@@ -246,7 +246,7 @@ async function getNextTurn(targetDateStr) {
     }
 }
 
-// [7] 데이터 저장/수정 로직 수정 (async/await 적용)
+// [7] 데이터 저장/수정 로직 업데이트
 window.addSchedule = async function() {
     const user = window.auth.currentUser;
     if (!user) return alert("로그인이 필요합니다.");
@@ -254,23 +254,25 @@ window.addSchedule = async function() {
     const dateInput = document.getElementById('date').value;
     let locationInput = document.getElementById('location').value;
     const endTime = document.getElementById('end-time').value;
-    const teammates = document.getElementById('teammates').value;
+    const author = document.getElementById('author').value; // 작성자
+    const teammates = document.getElementById('teammates').value; // ⭐️ 팀원 추가
     const memo = document.getElementById('memo').value;
 
     if (!dateInput || !locationInput) return alert("필수 항목을 입력하세요.");
 
-    // ⭐️ DB를 조회하여 실제 일정 날짜 기반으로 회차 계산
-    const turn = await getNextTurn(dateInput);
+    // 회차 계산 (실제 일정 날짜 카운트 방식)
+    const turn = await getTurnByOrder(dateInput);
     const turnTag = `[${turn}회]`;
-    
-    // 기존에 붙어있던 회차 태그 제거 후 새로 부여
     locationInput = locationInput.replace(/\[\d+회\]/g, "").trim(); 
     locationInput = `${locationInput} ${turnTag}`;
 
     const data = {
         date: dateInput,
         location: locationInput,
-        endTime, teammates, memo,
+        endTime,
+        author,      // 작성자 저장
+        teammates,   // ⭐️ 팀원 저장
+        memo,
         userId: user.uid,
         timestamp: Date.now()
     };
@@ -285,19 +287,27 @@ window.addSchedule = async function() {
             await addDoc(collection(window.db, "schedules"), data);
         }
         resetForm();
-        displaySchedules(); // 리스트와 달력 갱신
+        displaySchedules();
     } catch (e) { console.error(e); }
 };
+
 // [기타 보조 함수들]
 window.changeMonth = (diff) => { currentViewDate.setMonth(currentViewDate.getMonth() + diff); renderCalendar(); };
+// [수정 버튼 클릭 시 데이터 불러오기]
 window.editSchedule = (id) => {
     const item = allSchedules.find(s => s.id === id);
     if (!item) return;
-    ['date','location','end-time','teammates','memo'].forEach(k => {
-        document.getElementById(k === 'end-time' ? 'end-time' : k).value = item[k === 'end-time' ? 'endTime' : k];
-    });
+    
+    document.getElementById('date').value = item.date;
+    document.getElementById('location').value = item.location;
+    document.getElementById('end-time').value = item.endTime;
+    document.getElementById('author').value = item.author || '';
+    document.getElementById('teammates').value = item.teammates || ''; // ⭐️ 팀원 불러오기
+    document.getElementById('memo').value = item.memo || '';
+    
     editId = id;
     document.getElementById('submit-btn').innerText = "수정 완료하기";
+    document.getElementById('date').scrollIntoView({ behavior: 'smooth' });
 };
 window.deleteSchedule = async (id) => {
     if (!confirm("삭제할까요?")) return;
@@ -356,11 +366,12 @@ window.filterList = function() {
     
     renderList(filteredData);
 };
+// [폼 초기화]
 function resetForm() {
-    ['location','memo','date'].forEach(id => document.getElementById(id).value = '');
+    ['date', 'location', 'author', 'teammates', 'memo'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
     document.getElementById('end-time').value = '18:00';
-    const user = window.auth.currentUser;
-    if (user) document.getElementById('teammates').value = user.displayName;
 }
 window.login = () => window.signInWithPopup(window.auth, window.provider);
 window.logout = () => window.signOut(window.auth);
